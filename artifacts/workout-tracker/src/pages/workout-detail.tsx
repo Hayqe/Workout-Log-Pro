@@ -24,8 +24,14 @@ export default function WorkoutDetailPage() {
   };
 
   let exercises: any[] = [];
+  let cfFreeText = "";
   try {
-    exercises = workout ? JSON.parse(workout.exercises) : [];
+    const parsed = workout ? JSON.parse(workout.exercises) : [];
+    if (Array.isArray(parsed)) {
+      exercises = parsed;
+    } else if (parsed && typeof parsed === "object" && parsed.freeText) {
+      cfFreeText = parsed.freeText;
+    }
   } catch {}
 
   if (isLoading) {
@@ -103,7 +109,9 @@ export default function WorkoutDetailPage() {
           <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Movements</CardTitle>
         </CardHeader>
         <CardContent>
-          {exercises.length === 0 ? (
+          {cfFreeText ? (
+            <pre className="font-mono text-sm text-foreground whitespace-pre-wrap leading-relaxed">{cfFreeText}</pre>
+          ) : exercises.length === 0 ? (
             <p className="text-muted-foreground font-mono text-sm">No exercises defined.</p>
           ) : (
             <div className="space-y-2">
