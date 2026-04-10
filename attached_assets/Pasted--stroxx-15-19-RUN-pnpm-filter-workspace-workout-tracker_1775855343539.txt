@@ -1,0 +1,30 @@
+> [stroxx 15/19] RUN pnpm --filter @workspace/workout-tracker run build:                                                                                                                           
+0.502                                                                                                                                                                                               
+0.502 > @workspace/workout-tracker@0.0.0 build /app/artifacts/workout-tracker                                                                                                                       
+0.502 > vite build --config vite.config.ts                                                                                                                                                          
+0.502                                                                                                                                                                                               
+0.674 ▲ [WARNING] Cannot find base config file "../../tsconfig.base.json" [tsconfig.json]
+0.674 
+0.674     tsconfig.json:2:13:
+0.674       2 │   "extends": "../../tsconfig.base.json",
+0.674         ╵              ~~~~~~~~~~~~~~~~~~~~~~~~~~
+0.674 
+0.841 vite v7.3.1 building client environment for production...
+0.911 ✓ 0 modules transformed.
+0.915 ✗ Build failed in 33ms
+0.915 error during build:
+0.915 [vite:build-html] failed to resolve "extends":"../../tsconfig.base.json" in /app/artifacts/workout-tracker/tsconfig.json
+0.915 file: /app/artifacts/workout-tracker/index.html
+0.915     at resolveExtends (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:5809:8)
+0.915     at parseExtends (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:5775:71)
+0.915     at parse$13 (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:5677:23)
+0.915     at async loadTsconfigJsonForFile (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:6286:37)
+0.915     at async transformWithEsbuild (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:6086:55)
+0.915     at async Object.transform (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:6172:20)
+0.915     at async transform (file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21269:16)
+0.915     at async ModuleLoader.addModuleSource (file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21497:36)
+0.948 /app/artifacts/workout-tracker:
+0.948  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/workout-tracker@0.0.0 build: `vite build --config vite.config.ts`
+0.948 Exit status 1
+------
+failed to solve: process "/bin/sh -c pnpm --filter @workspace/workout-tracker run build" did not complete successfully: exit code: 1
