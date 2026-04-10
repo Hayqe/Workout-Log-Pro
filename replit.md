@@ -16,6 +16,29 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+- **Workout Tracker** (`artifacts/workout-tracker`) — React + Vite web app at `/`
+- **API Server** (`artifacts/api-server`) — Express 5 backend at `/api`
+
+## Features
+
+GainLog — A workout tracking web platform with:
+- **Bodybuilding workouts** — exercises with sets, reps, and weight
+- **CrossFit-style workouts** — AMRAP, EMOM, and RFT formats
+- **Cardio workouts** — cycling/running with distance, duration, heart rate, elevation
+- **Workout planner** — monthly calendar view with scheduled workouts
+- **Log book** — record results for every session
+- **Dashboard** — summary stats, weekly volume chart, upcoming sessions, recent logs
+- **Exercise library** — searchable list of exercises
+
+## Database Schema
+
+- `exercises` — exercise library
+- `workouts` — workout templates
+- `scheduled_workouts` — calendar entries
+- `workout_logs` — logged sessions with results
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages

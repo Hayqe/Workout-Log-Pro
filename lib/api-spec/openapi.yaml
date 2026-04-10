@@ -3,13 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for Workout Tracker
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: workouts
+    description: Workout templates and plans
+  - name: workout-logs
+    description: Logged workout sessions
+  - name: exercises
+    description: Exercise library
+  - name: scheduled-workouts
+    description: Planned workout sessions on the calendar
+  - name: dashboard
+    description: Summary stats and activity
+
 paths:
   /healthz:
     get:
@@ -24,6 +35,415 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /exercises:
+    get:
+      operationId: listExercises
+      tags: [exercises]
+      summary: List all exercises
+      responses:
+        "200":
+          description: List of exercises
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exercise"
+    post:
+      operationId: createExercise
+      tags: [exercises]
+      summary: Create an exercise
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExerciseBody"
+      responses:
+        "201":
+          description: Created exercise
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+
+  /exercises/{id}:
+    get:
+      operationId: getExercise
+      tags: [exercises]
+      summary: Get a single exercise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Exercise found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteExercise
+      tags: [exercises]
+      summary: Delete an exercise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workouts:
+    get:
+      operationId: listWorkouts
+      tags: [workouts]
+      summary: List all workout templates
+      responses:
+        "200":
+          description: List of workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workout"
+    post:
+      operationId: createWorkout
+      tags: [workouts]
+      summary: Create a workout template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkoutBody"
+      responses:
+        "201":
+          description: Created workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+
+  /workouts/{id}:
+    get:
+      operationId: getWorkout
+      tags: [workouts]
+      summary: Get a single workout template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workout found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWorkout
+      tags: [workouts]
+      summary: Update a workout template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkoutBody"
+      responses:
+        "200":
+          description: Updated workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteWorkout
+      tags: [workouts]
+      summary: Delete a workout template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /scheduled-workouts:
+    get:
+      operationId: listScheduledWorkouts
+      tags: [scheduled-workouts]
+      summary: List all scheduled workouts
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of scheduled workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduledWorkout"
+    post:
+      operationId: createScheduledWorkout
+      tags: [scheduled-workouts]
+      summary: Schedule a workout on a date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduledWorkoutBody"
+      responses:
+        "201":
+          description: Created scheduled workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledWorkout"
+
+  /scheduled-workouts/{id}:
+    get:
+      operationId: getScheduledWorkout
+      tags: [scheduled-workouts]
+      summary: Get a scheduled workout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledWorkout"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateScheduledWorkout
+      tags: [scheduled-workouts]
+      summary: Update a scheduled workout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduledWorkoutBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledWorkout"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteScheduledWorkout
+      tags: [scheduled-workouts]
+      summary: Delete a scheduled workout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workout-logs:
+    get:
+      operationId: listWorkoutLogs
+      tags: [workout-logs]
+      summary: List all workout logs
+      responses:
+        "200":
+          description: List of workout logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkoutLog"
+    post:
+      operationId: createWorkoutLog
+      tags: [workout-logs]
+      summary: Log a completed workout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkoutLogBody"
+      responses:
+        "201":
+          description: Created log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutLog"
+
+  /workout-logs/{id}:
+    get:
+      operationId: getWorkoutLog
+      tags: [workout-logs]
+      summary: Get a single workout log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutLog"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWorkoutLog
+      tags: [workout-logs]
+      summary: Update a workout log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkoutLogBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutLog"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteWorkoutLog
+      tags: [workout-logs]
+      summary: Delete a workout log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-logs:
+    get:
+      operationId: getRecentLogs
+      tags: [dashboard]
+      summary: Get recent workout logs
+      responses:
+        "200":
+          description: Recent logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkoutLog"
+
+  /dashboard/upcoming:
+    get:
+      operationId: getUpcomingWorkouts
+      tags: [dashboard]
+      summary: Get upcoming scheduled workouts
+      responses:
+        "200":
+          description: Upcoming workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduledWorkout"
+
+  /dashboard/weekly-volume:
+    get:
+      operationId: getWeeklyVolume
+      tags: [dashboard]
+      summary: Get weekly workout volume by type
+      responses:
+        "200":
+          description: Weekly volume data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyVolumeEntry"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +454,307 @@ components:
       required:
         - status
 
+    Exercise:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        muscleGroup:
+          type: string
+        category:
+          type: string
+          description: "bodybuilding | crossfit | cardio"
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - muscleGroup
+        - category
+        - createdAt
+
+    CreateExerciseBody:
+      type: object
+      properties:
+        name:
+          type: string
+        muscleGroup:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+      required:
+        - name
+        - muscleGroup
+        - category
+
+    Workout:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          description: "bodybuilding | amrap | emom | rft | cardio"
+        description:
+          type: ["string", "null"]
+        duration:
+          type: ["integer", "null"]
+          description: duration in minutes (for AMRAP/EMOM)
+        rounds:
+          type: ["integer", "null"]
+          description: number of rounds (for RFT)
+        exercises:
+          type: string
+          description: JSON string of workout exercises/movements
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - type
+        - exercises
+        - createdAt
+
+    CreateWorkoutBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: ["string", "null"]
+        duration:
+          type: ["integer", "null"]
+        rounds:
+          type: ["integer", "null"]
+        exercises:
+          type: string
+      required:
+        - name
+        - type
+        - exercises
+
+    UpdateWorkoutBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: ["string", "null"]
+        duration:
+          type: ["integer", "null"]
+        rounds:
+          type: ["integer", "null"]
+        exercises:
+          type: string
+
+    ScheduledWorkout:
+      type: object
+      properties:
+        id:
+          type: integer
+        workoutId:
+          type: ["integer", "null"]
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        scheduledDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+        completed:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - workoutName
+        - workoutType
+        - scheduledDate
+        - completed
+        - createdAt
+
+    CreateScheduledWorkoutBody:
+      type: object
+      properties:
+        workoutId:
+          type: ["integer", "null"]
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        scheduledDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+      required:
+        - workoutName
+        - workoutType
+        - scheduledDate
+
+    UpdateScheduledWorkoutBody:
+      type: object
+      properties:
+        workoutId:
+          type: ["integer", "null"]
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        scheduledDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+        completed:
+          type: boolean
+
+    WorkoutLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        workoutId:
+          type: ["integer", "null"]
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        loggedAt:
+          type: string
+        durationMinutes:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        results:
+          type: string
+          description: JSON string of results (sets/reps/weights or time/distance or rounds completed)
+        rating:
+          type: ["integer", "null"]
+          description: 1-5 rating
+        createdAt:
+          type: string
+      required:
+        - id
+        - workoutName
+        - workoutType
+        - loggedAt
+        - results
+        - createdAt
+
+    CreateWorkoutLogBody:
+      type: object
+      properties:
+        workoutId:
+          type: ["integer", "null"]
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        loggedAt:
+          type: string
+        durationMinutes:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        results:
+          type: string
+        rating:
+          type: ["integer", "null"]
+      required:
+        - workoutName
+        - workoutType
+        - loggedAt
+        - results
+
+    UpdateWorkoutLogBody:
+      type: object
+      properties:
+        workoutName:
+          type: string
+        workoutType:
+          type: string
+        loggedAt:
+          type: string
+        durationMinutes:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        results:
+          type: string
+        rating:
+          type: ["integer", "null"]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalWorkoutsLogged:
+          type: integer
+        workoutsThisWeek:
+          type: integer
+        workoutsThisMonth:
+          type: integer
+        scheduledThisWeek:
+          type: integer
+        totalMinutesThisMonth:
+          type: integer
+        workoutsByType:
+          type: object
+          properties:
+            bodybuilding:
+              type: integer
+            amrap:
+              type: integer
+            emom:
+              type: integer
+            rft:
+              type: integer
+            cardio:
+              type: integer
+          required:
+            - bodybuilding
+            - amrap
+            - emom
+            - rft
+            - cardio
+      required:
+        - totalWorkoutsLogged
+        - workoutsThisWeek
+        - workoutsThisMonth
+        - scheduledThisWeek
+        - totalMinutesThisMonth
+        - workoutsByType
+
+    WeeklyVolumeEntry:
+      type: object
+      properties:
+        week:
+          type: string
+        bodybuilding:
+          type: integer
+        amrap:
+          type: integer
+        emom:
+          type: integer
+        rft:
+          type: integer
+        cardio:
+          type: integer
+      required:
+        - week
+        - bodybuilding
+        - amrap
+        - emom
+        - rft
+        - cardio
