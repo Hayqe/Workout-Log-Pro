@@ -1,4 +1,5 @@
 import "./session.d";
+import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -49,5 +50,13 @@ app.use(session({
 }));
 
 app.use("/api", router);
+
+if (process.env.NODE_ENV === "production") {
+  const publicDir = path.join(__dirname, "public");
+  app.use(express.static(publicDir));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+}
 
 export default app;

@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-10">
           <Activity className="h-8 w-8 text-primary" />
-          <span className="font-mono font-black text-3xl tracking-tighter uppercase text-foreground">GainLog</span>
+          <span className="font-mono font-black text-3xl tracking-tighter uppercase text-foreground">Stroxx</span>
         </div>
 
         <div className="bg-card border border-border rounded-lg p-8 space-y-6">

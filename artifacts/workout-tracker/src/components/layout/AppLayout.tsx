@@ -29,7 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur border-b border-border flex items-center justify-between px-4 h-12">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-primary" />
-          <span className="font-mono font-black text-base tracking-tighter uppercase text-foreground">GainLog</span>
+          <span className="font-mono font-black text-base tracking-tighter uppercase text-foreground">Stroxx</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-[10px] border border-primary/30">
@@ -63,7 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-primary" />
-            <span className="font-mono font-bold text-xl tracking-tighter uppercase text-sidebar-foreground">GainLog</span>
+            <span className="font-mono font-bold text-xl tracking-tighter uppercase text-sidebar-foreground">Stroxx</span>
           </div>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2">
