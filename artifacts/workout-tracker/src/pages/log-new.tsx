@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { RestTimer } from "@/components/ui/rest-timer";
-import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
+import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -352,15 +352,16 @@ export default function LogNewPage() {
 
   const queryClient = useQueryClient();
   const createLog = useCreateWorkoutLog();
-  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey(), enabled: !fromTemplate } });
+  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
 
   const prevMap = useMemo(() => buildPrevMap(allLogs), [allLogs]);
 
   const selectedWorkoutId = workoutIdFromUrl ? parseInt(workoutIdFromUrl) : 0;
-  const { data: templateWorkout } = useGetWorkout(selectedWorkoutId, {
-    query: { enabled: !!selectedWorkoutId, queryKey: getGetWorkoutQueryKey(selectedWorkoutId) }
-  });
+  const templateWorkout = useMemo(
+    () => workoutIdFromUrl && workouts ? workouts.find(w => w.id === selectedWorkoutId) ?? null : null,
+    [workouts, workoutIdFromUrl, selectedWorkoutId]
+  );
 
   const [selectedTemplateId, setSelectedTemplateId] = useState(workoutIdFromUrl || "");
   const [workoutName, setWorkoutName] = useState("");
