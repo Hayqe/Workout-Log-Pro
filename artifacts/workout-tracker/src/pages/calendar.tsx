@@ -19,6 +19,23 @@ import { Link } from "wouter";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
+const TYPE_CHIP: Record<string, { label: string; bg: string; text: string }> = {
+  bodybuilding: { label: "BB",  bg: "bg-blue-900/60",   text: "text-blue-300" },
+  amrap:        { label: "AM",  bg: "bg-orange-900/60", text: "text-orange-300" },
+  emom:         { label: "EM",  bg: "bg-purple-900/60", text: "text-purple-300" },
+  rft:          { label: "RFT", bg: "bg-red-900/60",    text: "text-red-300" },
+  cardio:       { label: "CA",  bg: "bg-green-900/60",  text: "text-green-300" },
+};
+
+function WorkoutTypeChip({ type, done }: { type: string; done: boolean }) {
+  const chip = TYPE_CHIP[type] ?? { label: type.slice(0, 2).toUpperCase(), bg: "bg-muted", text: "text-muted-foreground" };
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded px-1 py-0 font-mono text-[8px] font-bold leading-4 ${chip.bg} ${chip.text} ${done ? "opacity-60" : ""} w-full justify-center`}>
+      {done ? "✓" : chip.label}
+    </span>
+  );
+}
+
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -135,9 +152,9 @@ export default function CalendarPage() {
                 >
                   <span className={`text-[11px] font-bold ${today ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</span>
                   {hasWorkout && (
-                    <div className="mt-0.5 flex flex-wrap gap-0.5 justify-center">
+                    <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
                       {dayScheduled.slice(0, 3).map(s => (
-                        <div key={s.id} className={`h-1.5 w-1.5 rounded-full ${allDone ? "bg-green-500" : isOwn(s) ? "bg-primary" : "bg-muted-foreground"}`} />
+                        <WorkoutTypeChip key={s.id} type={s.workoutType} done={s.completed} />
                       ))}
                     </div>
                   )}

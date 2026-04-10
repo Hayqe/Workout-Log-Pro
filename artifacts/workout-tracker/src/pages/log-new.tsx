@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Star, Plus, X, History } from "lucide-react";
+import { ArrowLeft, Star, Plus, X, History, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
@@ -56,6 +56,45 @@ function PrevWeightHint({ exerciseName, prevMap }: { exerciseName: string; prevM
   );
 }
 
+type PrevCfResult = { loggedAt: string; results: string };
+
+function formatCfResult(type: string, results: string): string {
+  try {
+    const r = JSON.parse(results);
+    if (type === "amrap") return `${r.rounds ?? r.roundsCompleted ?? "—"} rounds${r.partialReps ? ` + ${r.partialReps} reps` : ""}`;
+    if (type === "emom") return r.score ? `${r.score}` : (r.kg ? `${r.kg} kg` : "—");
+    if (type === "rft") return r.time ? `${r.time}` : "—";
+  } catch {}
+  return "—";
+}
+
+function PrevCfResults({ logs, workoutId, workoutType }: { logs: PrevCfResult[] | undefined; workoutId: string; workoutType: string }) {
+  const prev = (logs || [])
+    .filter((l: any) => l.workoutId?.toString() === workoutId && l.workoutType === workoutType)
+    .sort((a: any, b: any) => b.loggedAt.localeCompare(a.loggedAt))
+    .slice(0, 4);
+
+  if (!prev.length) return null;
+
+  return (
+    <Card className="bg-muted/20 border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="font-mono text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <History className="h-3.5 w-3.5" /> Previous results
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-1.5">
+        {prev.map((log: any, i: number) => (
+          <div key={i} className="flex items-center justify-between py-1 border-b border-border last:border-0">
+            <span className="font-mono text-[11px] text-muted-foreground">{format(parseISO(log.loggedAt.split("T")[0]), "MMM d yyyy")}</span>
+            <span className="font-mono text-sm font-bold text-primary">{formatCfResult(workoutType, log.results)}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function LogNewPage() {
   const [location, navigate] = useLocation();
   const params = new URLSearchParams(location.split("?")[1] || "");
@@ -85,12 +124,21 @@ export default function LogNewPage() {
     { exerciseName: "", sets: [{ reps: 0, weight: 0 }] }
   ]);
 
-  const [cfRoundsCompleted, setCfRoundsCompleted] = useState("");
-  const [cfTime, setCfTime] = useState("");
+  // AMRAP
+  const [amrapRounds, setAmrapRounds] = useState("");
+  const [amrapPartialReps, setAmrapPartialReps] = useState("");
+  // EMOM
+  const [emomScore, setEmomScore] = useState("");
+  // RFT
+  const [rftTime, setRftTime] = useState("");
+  // Cardio
   const [cardioDistance, setCardioDistance] = useState("");
   const [cardioDuration, setCardioDuration] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
+
+  // CrossFit workout text (from template)
+  const [cfText, setCfText] = useState("");
 
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);
@@ -102,12 +150,18 @@ export default function LogNewPage() {
         if (w.type === "bodybuilding") {
           try {
             const exs = JSON.parse(w.exercises);
-            if (exs.length > 0) {
+            if (Array.isArray(exs) && exs.length > 0) {
               setBbResults(exs.map((ex: any) => ({
                 exerciseName: ex.name,
                 sets: Array.from({ length: ex.sets || 3 }, () => ({ reps: ex.reps || 0, weight: ex.weight || 0 }))
               })));
             }
+          } catch {}
+        }
+        if (["amrap", "emom", "rft"].includes(w.type)) {
+          try {
+            const parsed = JSON.parse(w.exercises);
+            if (parsed?.freeText) setCfText(parsed.freeText);
           } catch {}
         }
       }
@@ -117,9 +171,9 @@ export default function LogNewPage() {
   const buildResults = () => {
     const type = workoutType;
     if (type === "bodybuilding") return JSON.stringify(bbResults);
-    if (type === "amrap") return JSON.stringify({ roundsCompleted: parseInt(cfRoundsCompleted) || 0, totalTime: parseInt(cfTime) || 0 });
-    if (type === "emom") return JSON.stringify({ rounds: parseInt(cfRoundsCompleted) || 0, timeCap: parseInt(cfTime) || 0 });
-    if (type === "rft") return JSON.stringify({ time: cfTime });
+    if (type === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0 });
+    if (type === "emom") return JSON.stringify({ score: emomScore });
+    if (type === "rft") return JSON.stringify({ time: rftTime });
     if (type === "cardio") return JSON.stringify({ distance: parseFloat(cardioDistance) || 0, duration: parseInt(cardioDuration) || 0, avgHeartRate: parseInt(cardioHR) || null, elevationGain: parseInt(cardioElevation) || null });
     return "{}";
   };
@@ -142,6 +196,8 @@ export default function LogNewPage() {
     queryClient.invalidateQueries({ queryKey: getListWorkoutLogsQueryKey() });
     navigate("/log");
   };
+
+  const isCrossfit = ["amrap", "emom", "rft"].includes(workoutType);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
@@ -196,6 +252,20 @@ export default function LogNewPage() {
           </CardContent>
         </Card>
 
+        {/* CrossFit template description + previous results */}
+        {isCrossfit && cfText && (
+          <Card className="bg-muted/10 border-border">
+            <CardContent className="pt-4">
+              <p className="font-mono text-xs uppercase text-muted-foreground mb-2">Workout</p>
+              <pre className="font-mono text-sm text-foreground whitespace-pre-wrap">{cfText}</pre>
+            </CardContent>
+          </Card>
+        )}
+
+        {isCrossfit && selectedTemplateId && (
+          <PrevCfResults logs={allLogs as any} workoutId={selectedTemplateId} workoutType={workoutType} />
+        )}
+
         {workoutType === "bodybuilding" && (
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -242,20 +312,38 @@ export default function LogNewPage() {
 
         {workoutType === "bodybuilding" && <RestTimer />}
 
-        {(workoutType === "amrap" || workoutType === "emom") && (
+        {workoutType === "amrap" && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">{workoutType.toUpperCase()} Results</CardTitle>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Score</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">{workoutType === "amrap" ? "Rounds Completed" : "Rounds"}</Label>
-                <Input type="number" value={cfRoundsCompleted} onChange={e => setCfRoundsCompleted(e.target.value)} placeholder="14" className="font-mono" />
+                <Label className="font-mono text-xs uppercase">Rounds Completed</Label>
+                <Input type="number" value={amrapRounds} onChange={e => setAmrapRounds(e.target.value)} placeholder="14" className="font-mono" />
               </div>
               <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">{workoutType === "amrap" ? "Total Time (min)" : "Time Cap (min)"}</Label>
-                <Input type="number" value={cfTime} onChange={e => setCfTime(e.target.value)} placeholder="20" className="font-mono" />
+                <Label className="font-mono text-xs uppercase">+ Partial Reps</Label>
+                <Input type="number" value={amrapPartialReps} onChange={e => setAmrapPartialReps(e.target.value)} placeholder="6" className="font-mono" />
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {workoutType === "emom" && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">EMOM Score</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="font-mono text-xs uppercase">Weight / Score</Label>
+              <Input
+                value={emomScore}
+                onChange={e => setEmomScore(e.target.value)}
+                placeholder="e.g. 50kg  or  3×50kg / 20kg"
+                className="font-mono"
+              />
+              <p className="font-mono text-[10px] text-muted-foreground">Enter the weight(s) you used during this EMOM</p>
             </CardContent>
           </Card>
         )}
@@ -263,13 +351,13 @@ export default function LogNewPage() {
         {workoutType === "rft" && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">RFT Results</CardTitle>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4" /> RFT Score
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Total Time (mm:ss)</Label>
-                <Input value={cfTime} onChange={e => setCfTime(e.target.value)} placeholder="11:30" className="font-mono" />
-              </div>
+            <CardContent className="space-y-2">
+              <Label className="font-mono text-xs uppercase">Total Time (mm:ss)</Label>
+              <Input value={rftTime} onChange={e => setRftTime(e.target.value)} placeholder="11:30" className="font-mono" />
             </CardContent>
           </Card>
         )}
