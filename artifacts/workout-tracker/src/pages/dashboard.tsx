@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Dumbbell, Activity, Timer, CalendarCheck, ArrowRight, Clock } from "lucide-react";
+import { Dumbbell, Activity, CalendarDays, CalendarCheck, ArrowRight, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 
@@ -38,9 +38,9 @@ export default function Dashboard() {
           highlight={true}
         />
         <StatCard 
-          title="Minutes (Mo)" 
-          value={loadingSummary ? "-" : summary?.totalMinutesThisMonth || 0} 
-          icon={Timer}
+          title="This Month" 
+          value={loadingSummary ? "-" : summary?.workoutsThisMonth || 0} 
+          icon={CalendarDays}
         />
         <StatCard 
           title="Upcoming" 
