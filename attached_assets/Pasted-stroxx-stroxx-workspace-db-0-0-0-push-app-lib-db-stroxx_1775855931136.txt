@@ -1,0 +1,34 @@
+stroxx  | 
+stroxx  | > @workspace/db@0.0.0 push /app/lib/db
+stroxx  | > drizzle-kit push --config ./drizzle.config.ts
+stroxx  | 
+stroxx  | Reading config file '/app/lib/db/drizzle.config.ts'
+stroxx  | Using 'pg' driver for database querying
+stroxx  | [⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+stroxx  | [i] No changes detected
+stroxx  | Starting Stroxx...
+stroxx  | Warning: connect.session() MemoryStore is not
+stroxx  | designed for a production environment, as it will leak
+stroxx  | memory, and will not scale past a single process.
+stroxx  | /app/node_modules/.pnpm/path-to-regexp@8.3.0/node_modules/path-to-regexp/src/index.ts:225
+stroxx  |       throw new PathError(`Missing parameter name at index ${index}`, str);
+stroxx  |             ^
+stroxx  | 
+stroxx  | PathError [TypeError]: Missing parameter name at index 1: *; visit https://git.new/pathToRegexpError for info
+stroxx  |     at name (/app/node_modules/.pnpm/path-to-regexp@8.3.0/node_modules/path-to-regexp/src/index.ts:225:13)
+stroxx  |     at parse (/app/node_modules/.pnpm/path-to-regexp@8.3.0/node_modules/path-to-regexp/src/index.ts:242:62)
+stroxx  |     at pathToRegexp (/app/node_modules/.pnpm/path-to-regexp@8.3.0/node_modules/path-to-regexp/src/index.ts:480:54)
+stroxx  |     at Object.match (/app/node_modules/.pnpm/path-to-regexp@8.3.0/node_modules/path-to-regexp/src/index.ts:438:28)
+stroxx  |     at matcher (/app/node_modules/.pnpm/router@2.2.0/node_modules/router/lib/layer.js:86:23)
+stroxx  |     at new Layer (/app/node_modules/.pnpm/router@2.2.0/node_modules/router/lib/layer.js:93:62)
+stroxx  |     at Function.route (/app/node_modules/.pnpm/router@2.2.0/node_modules/router/index.js:428:17)
+stroxx  |     at Function.route (/app/node_modules/.pnpm/express@5.2.1/node_modules/express/lib/application.js:257:22)
+stroxx  |     at Function.app2.<computed> (/app/node_modules/.pnpm/express@5.2.1/node_modules/express/lib/application.js:478:22)
+stroxx  |     at <anonymous> (/app/artifacts/api-server/src/app.ts:57:7) {
+stroxx  |   originalPath: '*'
+stroxx  | }
+stroxx  | 
+stroxx  | Node.js v22.22.2
+stroxx exited with code 1
