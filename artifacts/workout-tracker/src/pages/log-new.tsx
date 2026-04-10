@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { ArrowLeft, Star, Plus, X, History, Clock, Play, Square, RotateCcw, Minus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -347,10 +348,11 @@ export default function LogNewPage() {
   const [location, navigate] = useLocation();
   const params = new URLSearchParams(location.split("?")[1] || "");
   const workoutIdFromUrl = params.get("workoutId");
+  const fromTemplate = !!workoutIdFromUrl;
 
   const queryClient = useQueryClient();
   const createLog = useCreateWorkoutLog();
-  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
+  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey(), enabled: !fromTemplate } });
   const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
 
   const prevMap = useMemo(() => buildPrevMap(allLogs), [allLogs]);
@@ -361,12 +363,13 @@ export default function LogNewPage() {
   });
 
   const [selectedTemplateId, setSelectedTemplateId] = useState(workoutIdFromUrl || "");
-  const [workoutName, setWorkoutName] = useState(templateWorkout?.name || "");
-  const [workoutType, setWorkoutType] = useState(templateWorkout?.type || "bodybuilding");
+  const [workoutName, setWorkoutName] = useState("");
+  const [workoutType, setWorkoutType] = useState("bodybuilding");
   const [loggedAt, setLoggedAt] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [durationMinutes, setDurationMinutes] = useState("");
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState(4);
+  const [templateApplied, setTemplateApplied] = useState(false);
 
   const [bbResults, setBbResults] = useState<ExerciseResult[]>([
     { exerciseName: "", sets: [{ reps: 0, weight: 0 }] }
@@ -381,6 +384,32 @@ export default function LogNewPage() {
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
   const [cfText, setCfText] = useState("");
+
+  /* Auto-apply template when loaded from URL */
+  useEffect(() => {
+    if (!templateWorkout || templateApplied) return;
+    setWorkoutName(templateWorkout.name);
+    setWorkoutType(templateWorkout.type);
+    setSelectedTemplateId(templateWorkout.id.toString());
+    if (templateWorkout.type === "bodybuilding") {
+      try {
+        const exs = JSON.parse(templateWorkout.exercises);
+        if (Array.isArray(exs) && exs.length > 0) {
+          setBbResults(exs.map((ex: any) => ({
+            exerciseName: ex.name,
+            sets: Array.from({ length: ex.sets || 3 }, () => ({ reps: ex.reps || 0, weight: ex.weight || 0 }))
+          })));
+        }
+      } catch {}
+    }
+    if (["amrap", "emom", "rft"].includes(templateWorkout.type)) {
+      try {
+        const parsed = JSON.parse(templateWorkout.exercises);
+        if (parsed?.freeText) setCfText(parsed.freeText);
+      } catch {}
+    }
+    setTemplateApplied(true);
+  }, [templateWorkout, templateApplied]);
 
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);
@@ -454,46 +483,73 @@ export default function LogNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Session info */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Session Info</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase tracking-wider">Load from template</Label>
-              <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
-                <SelectTrigger className="font-mono"><SelectValue placeholder="Select template..." /></SelectTrigger>
-                <SelectContent>
-                  {workouts?.map(w => <SelectItem key={w.id} value={w.id.toString()} className="font-mono">{w.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase tracking-wider">Workout Name</Label>
-              <Input value={workoutName} onChange={e => setWorkoutName(e.target.value)} placeholder="e.g. Push Day A" required className="font-mono" />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase tracking-wider">Type</Label>
-              <Select value={workoutType} onValueChange={setWorkoutType}>
-                <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {WORKOUT_TYPES.map(t => <SelectItem key={t} value={t} className="font-mono capitalize">{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+        {/* Template mode: compact header */}
+        {fromTemplate ? (
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Logging from template</p>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-black text-lg uppercase tracking-tight">{workoutName || "Loading…"}</span>
+                    {workoutName && <WorkoutBadge type={workoutType} />}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
+                  <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
+                  <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Ad-hoc mode: full session info card */
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Session Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
-                <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
+                <Label className="font-mono text-xs uppercase tracking-wider">Load from template</Label>
+                <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger className="font-mono"><SelectValue placeholder="Select template..." /></SelectTrigger>
+                  <SelectContent>
+                    {workouts?.map(w => <SelectItem key={w.id} value={w.id.toString()} className="font-mono">{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
-                <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
+                <Label className="font-mono text-xs uppercase tracking-wider">Workout Name</Label>
+                <Input value={workoutName} onChange={e => setWorkoutName(e.target.value)} placeholder="e.g. Push Day A" required className="font-mono" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider">Type</Label>
+                <Select value={workoutType} onValueChange={setWorkoutType}>
+                  <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {WORKOUT_TYPES.map(t => <SelectItem key={t} value={t} className="font-mono capitalize">{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
+                  <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
+                  <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* CrossFit whiteboard */}
         {isCrossfit && (
