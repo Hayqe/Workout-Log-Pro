@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { RestTimer } from "@/components/ui/rest-timer";
 import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
@@ -10,19 +10,335 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Star, Plus, X, History, Clock } from "lucide-react";
+import { ArrowLeft, Star, Plus, X, History, Clock, Play, Square, RotateCcw, Minus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
-type ExerciseResult = {
-  exerciseName: string;
-  sets: { reps: number; weight: number }[];
-};
-
+type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[] };
 type PrevSet = { reps: number; weight: number };
 type PrevMap = Record<string, { sets: PrevSet[]; date: string }>;
 
+function fmtTime(s: number) {
+  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+}
+
+/* ─── RFT tracker: stopwatch + round counter ─── */
+function RftTracker({ onTimeSet }: { onTimeSet: (t: string) => void }) {
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [rounds, setRounds] = useState(0);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const handleStop = () => {
+    setRunning(false);
+    const t = fmtTime(elapsed);
+    onTimeSet(t);
+    setSaved(true);
+  };
+  const handleReset = () => { setRunning(false); setElapsed(0); setRounds(0); setSaved(false); };
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-2">
+      {/* Clock */}
+      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${running ? "text-primary" : saved ? "text-green-400" : "text-foreground"}`}>
+        {fmtTime(elapsed)}
+      </div>
+      {saved && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Time saved ✓</p>}
+
+      {/* Round counter */}
+      <div className="flex flex-col items-center gap-1">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Rounds</p>
+        <div className="flex items-center gap-4">
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
+          <span className="text-5xl font-mono font-black w-16 text-center tabular-nums">{rounds}</span>
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => r + 1)}><Plus className="h-4 w-4" /></Button>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex gap-2">
+        {!running ? (
+          <Button type="button" onClick={() => { setRunning(true); setSaved(false); }} className="font-mono uppercase gap-2" disabled={saved}>
+            <Play className="h-4 w-4" />{elapsed === 0 ? "Start" : "Resume"}
+          </Button>
+        ) : (
+          <Button type="button" onClick={handleStop} variant="destructive" className="font-mono uppercase gap-2">
+            <Square className="h-4 w-4" />Stop &amp; Save
+          </Button>
+        )}
+        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
+          <RotateCcw className="h-3.5 w-3.5" />Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── AMRAP tracker: countdown + round + partial rep counter ─── */
+function AmrapTracker({
+  defaultMinutes,
+  onRoundsSet,
+  onPartialSet,
+}: {
+  defaultMinutes: number;
+  onRoundsSet: (r: string) => void;
+  onPartialSet: (r: string) => void;
+}) {
+  const [totalMin, setTotalMin] = useState(defaultMinutes);
+  const [remaining, setRemaining] = useState(defaultMinutes * 60);
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [rounds, setRounds] = useState(0);
+  const [partial, setPartial] = useState(0);
+  const totalMinRef = useRef(totalMin);
+
+  useEffect(() => { totalMinRef.current = totalMin; }, [totalMin]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setRemaining(r => {
+        if (r <= 1) {
+          setRunning(false);
+          setDone(true);
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  useEffect(() => {
+    if (done) {
+      onRoundsSet(rounds.toString());
+      onPartialSet(partial.toString());
+    }
+  }, [done]);
+
+  const handleStart = () => {
+    if (!running && !done) {
+      setRemaining(totalMin * 60);
+      setRounds(0);
+      setPartial(0);
+      setRunning(true);
+    }
+  };
+  const handleReset = () => { setRunning(false); setDone(false); setRemaining(totalMin * 60); setRounds(0); setPartial(0); };
+
+  const pct = 1 - remaining / (totalMin * 60);
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-2">
+      {/* Setup row (only before start) */}
+      {!running && !done && (
+        <div className="flex items-center gap-3">
+          <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Time cap (min)</Label>
+          <Input
+            type="number"
+            value={totalMin}
+            onChange={e => { const v = parseInt(e.target.value) || 1; setTotalMin(v); setRemaining(v * 60); }}
+            className="font-mono w-20 h-8 text-center"
+            min={1}
+          />
+        </div>
+      )}
+
+      {/* Countdown */}
+      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${done ? "text-green-400" : running ? "text-primary" : "text-foreground"}`}>
+        {fmtTime(remaining)}
+      </div>
+
+      {/* Progress bar */}
+      {(running || done) && (
+        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct * 100}%` }} />
+        </div>
+      )}
+
+      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Time's up — score saved ✓</p>}
+
+      {/* Counters */}
+      <div className="grid grid-cols-2 gap-8">
+        <div className="flex flex-col items-center gap-1">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Rounds</p>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
+            <span className="text-5xl font-mono font-black w-12 text-center tabular-nums">{rounds}</span>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => r + 1)}><Plus className="h-4 w-4" /></Button>
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">+ Reps</p>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setPartial(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
+            <span className="text-5xl font-mono font-black w-12 text-center tabular-nums">{partial}</span>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setPartial(r => r + 1)}><Plus className="h-4 w-4" /></Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex gap-2">
+        {!running && !done && (
+          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2">
+            <Play className="h-4 w-4" />Start
+          </Button>
+        )}
+        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
+          <RotateCcw className="h-3.5 w-3.5" />Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── EMOM timer: configurable interval that resets until total time is up ─── */
+function EmomTimer() {
+  const [intervalMin, setIntervalMin] = useState(1);
+  const [totalMin, setTotalMin] = useState(20);
+  const [intervalSec, setIntervalSec] = useState(60);
+  const [totalSec, setTotalSec] = useState(1200);
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [currentInterval, setCurrentInterval] = useState(1);
+  const intervalMinRef = useRef(intervalMin);
+
+  useEffect(() => { intervalMinRef.current = intervalMin; }, [intervalMin]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setIntervalSec(r => {
+        if (r <= 1) {
+          setCurrentInterval(i => i + 1);
+          return intervalMinRef.current * 60;
+        }
+        return r - 1;
+      });
+      setTotalSec(r => {
+        if (r <= 1) {
+          setRunning(false);
+          setDone(true);
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const totalIntervals = Math.round(totalMin / intervalMin);
+  const pct = 1 - intervalSec / (intervalMin * 60);
+  const isLastSeconds = intervalSec <= 5 && running;
+
+  const handleStart = () => {
+    setIntervalSec(intervalMin * 60);
+    setTotalSec(totalMin * 60);
+    setCurrentInterval(1);
+    setDone(false);
+    setRunning(true);
+  };
+  const handleReset = () => {
+    setRunning(false);
+    setDone(false);
+    setIntervalSec(intervalMin * 60);
+    setTotalSec(totalMin * 60);
+    setCurrentInterval(1);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-2">
+      {/* Setup (only before start) */}
+      {!running && !done && (
+        <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+          <div className="space-y-1 text-center">
+            <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Interval (min)</Label>
+            <Input
+              type="number"
+              value={intervalMin}
+              onChange={e => { const v = parseInt(e.target.value) || 1; setIntervalMin(v); setIntervalSec(v * 60); }}
+              className="font-mono text-center h-9"
+              min={1}
+            />
+          </div>
+          <div className="space-y-1 text-center">
+            <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total (min)</Label>
+            <Input
+              type="number"
+              value={totalMin}
+              onChange={e => { const v = parseInt(e.target.value) || 1; setTotalMin(v); setTotalSec(v * 60); }}
+              className="font-mono text-center h-9"
+              min={1}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Interval status */}
+      {(running || done) && (
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          Interval {currentInterval} / {totalIntervals}
+        </p>
+      )}
+
+      {/* Interval countdown */}
+      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter transition-colors ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : "text-foreground"}`}>
+        {fmtTime(intervalSec)}
+      </div>
+
+      {/* Interval progress bar */}
+      {(running || done) && (
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${isLastSeconds ? "bg-destructive" : "bg-primary"}`}
+            style={{ width: `${pct * 100}%` }}
+          />
+        </div>
+      )}
+
+      {/* Total remaining */}
+      {(running || done) && (
+        <p className="font-mono text-sm text-muted-foreground">
+          Total remaining: <span className="font-bold text-foreground">{fmtTime(totalSec)}</span>
+        </p>
+      )}
+
+      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Done — {totalIntervals} intervals completed ✓</p>}
+
+      {/* Controls */}
+      <div className="flex gap-2">
+        {!running && !done && (
+          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2">
+            <Play className="h-4 w-4" />Start
+          </Button>
+        )}
+        {running && (
+          <Button type="button" onClick={() => setRunning(false)} variant="outline" className="font-mono uppercase gap-2">
+            <Square className="h-4 w-4" />Pause
+          </Button>
+        )}
+        {!running && done === false && intervalSec < intervalMin * 60 && (
+          <Button type="button" onClick={() => setRunning(true)} className="font-mono uppercase gap-2">
+            <Play className="h-4 w-4" />Resume
+          </Button>
+        )}
+        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
+          <RotateCcw className="h-3.5 w-3.5" />Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── helpers ─── */
 function buildPrevMap(logs: Array<{ workoutType: string; loggedAt: string; results: unknown }> | undefined): PrevMap {
   if (!logs) return {};
   const map: PrevMap = {};
@@ -33,9 +349,7 @@ function buildPrevMap(logs: Array<{ workoutType: string; loggedAt: string; resul
       const results = JSON.parse(log.results as string) as ExerciseResult[];
       for (const ex of results) {
         const key = ex.exerciseName.toLowerCase().trim();
-        if (!map[key]) {
-          map[key] = { sets: ex.sets, date: log.loggedAt.split("T")[0] };
-        }
+        if (!map[key]) map[key] = { sets: ex.sets, date: log.loggedAt.split("T")[0] };
       }
     } catch {}
   }
@@ -73,9 +387,7 @@ function PrevCfResults({ logs, workoutId, workoutType }: { logs: PrevCfResult[] 
     .filter((l: any) => l.workoutId?.toString() === workoutId && l.workoutType === workoutType)
     .sort((a: any, b: any) => b.loggedAt.localeCompare(a.loggedAt))
     .slice(0, 4);
-
   if (!prev.length) return null;
-
   return (
     <Card className="bg-muted/20 border-border">
       <CardHeader className="pb-2">
@@ -95,6 +407,7 @@ function PrevCfResults({ logs, workoutId, workoutType }: { logs: PrevCfResult[] 
   );
 }
 
+/* ─── main page ─── */
 export default function LogNewPage() {
   const [location, navigate] = useLocation();
   const params = new URLSearchParams(location.split("?")[1] || "");
@@ -124,21 +437,17 @@ export default function LogNewPage() {
     { exerciseName: "", sets: [{ reps: 0, weight: 0 }] }
   ]);
 
-  // AMRAP
   const [amrapRounds, setAmrapRounds] = useState("");
   const [amrapPartialReps, setAmrapPartialReps] = useState("");
-  // EMOM
   const [emomScore, setEmomScore] = useState("");
-  // RFT
   const [rftTime, setRftTime] = useState("");
-  // Cardio
   const [cardioDistance, setCardioDistance] = useState("");
   const [cardioDuration, setCardioDuration] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
-
-  // CrossFit workout text (from template)
   const [cfText, setCfText] = useState("");
+
+  const [templateAmrapMin, setTemplateAmrapMin] = useState(20);
 
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);
@@ -163,6 +472,7 @@ export default function LogNewPage() {
             const parsed = JSON.parse(w.exercises);
             if (parsed?.freeText) setCfText(parsed.freeText);
           } catch {}
+          if (w.duration) setTemplateAmrapMin(w.duration);
         }
       }
     }
@@ -212,6 +522,7 @@ export default function LogNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Session info */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Session Info</CardTitle>
@@ -252,20 +563,31 @@ export default function LogNewPage() {
           </CardContent>
         </Card>
 
-        {/* CrossFit template description + previous results */}
-        {isCrossfit && cfText && (
-          <Card className="bg-muted/10 border-border">
-            <CardContent className="pt-4">
-              <p className="font-mono text-xs uppercase text-muted-foreground mb-2">Workout</p>
-              <pre className="font-mono text-sm text-foreground whitespace-pre-wrap">{cfText}</pre>
+        {/* CrossFit whiteboard — always editable */}
+        {isCrossfit && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Whiteboard</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Textarea
+                value={cfText}
+                onChange={e => setCfText(e.target.value)}
+                placeholder={"Write the workout:\n\n21-15-9\nThrusters 43kg\nPull-ups"}
+                className="font-mono text-sm resize-none"
+                rows={5}
+              />
+              <p className="font-mono text-[10px] text-muted-foreground">Loaded from template — edit freely, not saved to the template</p>
             </CardContent>
           </Card>
         )}
 
+        {/* Previous results */}
         {isCrossfit && selectedTemplateId && (
           <PrevCfResults logs={allLogs as any} workoutId={selectedTemplateId} workoutType={workoutType} />
         )}
 
+        {/* Bodybuilding */}
         {workoutType === "bodybuilding" && (
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -285,7 +607,8 @@ export default function LogNewPage() {
                       placeholder="Exercise name"
                       className="font-mono"
                     />
-                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setBbResults(bbResults.filter((_, ri) => ri !== i))}>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive"
+                      onClick={() => setBbResults(bbResults.filter((_, ri) => ri !== i))}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -312,56 +635,73 @@ export default function LogNewPage() {
 
         {workoutType === "bodybuilding" && <RestTimer />}
 
+        {/* RFT tracker */}
+        {workoutType === "rft" && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4" /> RFT — Rounds For Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RftTracker onTimeSet={setRftTime} />
+              <div className="mt-5 border-t border-border pt-4 space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time (mm:ss)</Label>
+                <Input value={rftTime} onChange={e => setRftTime(e.target.value)} placeholder="11:30" className="font-mono" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AMRAP tracker */}
         {workoutType === "amrap" && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Score</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Rounds Completed</Label>
-                <Input type="number" value={amrapRounds} onChange={e => setAmrapRounds(e.target.value)} placeholder="14" className="font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">+ Partial Reps</Label>
-                <Input type="number" value={amrapPartialReps} onChange={e => setAmrapPartialReps(e.target.value)} placeholder="6" className="font-mono" />
+            <CardContent>
+              <AmrapTracker
+                defaultMinutes={templateAmrapMin}
+                onRoundsSet={setAmrapRounds}
+                onPartialSet={setAmrapPartialReps}
+              />
+              <div className="mt-5 border-t border-border pt-4 grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">Rounds</Label>
+                  <Input type="number" value={amrapRounds} onChange={e => setAmrapRounds(e.target.value)} placeholder="14" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">+ Partial Reps</Label>
+                  <Input type="number" value={amrapPartialReps} onChange={e => setAmrapPartialReps(e.target.value)} placeholder="6" className="font-mono" />
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* EMOM timer */}
         {workoutType === "emom" && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">EMOM Score</CardTitle>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">EMOM Timer</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Label className="font-mono text-xs uppercase">Weight / Score</Label>
-              <Input
-                value={emomScore}
-                onChange={e => setEmomScore(e.target.value)}
-                placeholder="e.g. 50kg  or  3×50kg / 20kg"
-                className="font-mono"
-              />
-              <p className="font-mono text-[10px] text-muted-foreground">Enter the weight(s) you used during this EMOM</p>
+            <CardContent>
+              <EmomTimer />
+              <div className="mt-5 border-t border-border pt-4 space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider">Weight / Score</Label>
+                <Input
+                  value={emomScore}
+                  onChange={e => setEmomScore(e.target.value)}
+                  placeholder="e.g. 50kg  or  3×50kg / 20kg"
+                  className="font-mono"
+                />
+                <p className="font-mono text-[10px] text-muted-foreground">Record the weight(s) used</p>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {workoutType === "rft" && (
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Clock className="h-4 w-4" /> RFT Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Label className="font-mono text-xs uppercase">Total Time (mm:ss)</Label>
-              <Input value={rftTime} onChange={e => setRftTime(e.target.value)} placeholder="11:30" className="font-mono" />
-            </CardContent>
-          </Card>
-        )}
-
+        {/* Cardio */}
         {workoutType === "cardio" && (
           <Card className="bg-card border-border">
             <CardHeader>
@@ -388,6 +728,7 @@ export default function LogNewPage() {
           </Card>
         )}
 
+        {/* Notes */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Session Notes</CardTitle>
