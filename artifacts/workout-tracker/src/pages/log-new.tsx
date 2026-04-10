@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, useSearch } from "wouter";
 import { RestTimer } from "@/components/ui/rest-timer";
 import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -388,8 +388,9 @@ function PrevCfResults({ logs, workoutId, workoutType }: { logs: any[] | undefin
 
 /* ─── main page ─── */
 export default function LogNewPage() {
-  const [location, navigate] = useLocation();
-  const params = new URLSearchParams(location.split("?")[1] || "");
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  const params = new URLSearchParams(search);
   const workoutIdFromUrl = params.get("workoutId");
   const fromTemplate = !!workoutIdFromUrl;
 
