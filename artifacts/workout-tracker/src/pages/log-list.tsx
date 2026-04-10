@@ -177,9 +177,8 @@ export default function LogListPage() {
             const isOpen = expandedId === log.id;
             return (
               <Card key={log.id} className={`bg-card border-border transition-all ${isOpen ? "border-primary/40" : "hover:border-primary/20"}`}>
-                <button
-                  type="button"
-                  className="w-full text-left"
+                <div
+                  className="w-full cursor-pointer select-none"
                   onClick={() => toggleExpand(log.id)}
                 >
                   <CardContent className="p-4 flex items-center gap-4">
@@ -214,7 +213,7 @@ export default function LogListPage() {
                       <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
                     </div>
                   </CardContent>
-                </button>
+                </div>
 
                 {isOpen && <LogDetail log={log} />}
               </Card>

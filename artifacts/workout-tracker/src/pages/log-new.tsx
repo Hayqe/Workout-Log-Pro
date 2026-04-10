@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { ArrowLeft, Star, Plus, X, History, Clock, Play, Square, RotateCcw, Minus } from "lucide-react";
+import { ArrowLeft, Star, Plus, X, History, Clock, Play, Square, RotateCcw, Minus, Maximize2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
@@ -37,6 +37,30 @@ function CountdownToStart({ count }: { count: number }) {
   );
 }
 
+/* ─── Fullscreen timer overlay with Wake Lock ─── */
+function FullscreenTimerOverlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const ctrl: { lock?: any } = {};
+    (async () => {
+      try { ctrl.lock = await (navigator as any).wakeLock?.request("screen"); } catch {}
+    })();
+    return () => { ctrl.lock?.release?.().catch?.(() => {}); };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-5 right-5 h-11 w-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      {children}
+    </div>
+  );
+}
+
 /* ─── Shared stopwatch + round counter (used by both RFT and AMRAP) ─── */
 function StopwatchTracker({
   onStop,
@@ -48,12 +72,13 @@ function StopwatchTracker({
   const [elapsed, setElapsed] = useState(0);
   const [rounds, setRounds] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
-  /* countdown */
+  /* countdown → auto go fullscreen when done */
   useEffect(() => {
     if (countdown === null) return;
     if (countdown <= 0) {
-      const id = setTimeout(() => { setCountdown(null); setRunning(true); }, 700);
+      const id = setTimeout(() => { setCountdown(null); setRunning(true); setFullscreen(true); }, 700);
       return () => clearTimeout(id);
     }
     const id = setTimeout(() => setCountdown(c => c !== null ? c - 1 : null), 1000);
@@ -70,6 +95,7 @@ function StopwatchTracker({
   const handleStart = () => { setSaved(false); setCountdown(10); };
   const handleStop = () => {
     setRunning(false);
+    setFullscreen(false);
     const t = fmtTime(elapsed);
     onStop(rounds, t);
     setSaved(true);
@@ -77,6 +103,7 @@ function StopwatchTracker({
   const handleReset = () => {
     setRunning(false);
     setCountdown(null);
+    setFullscreen(false);
     setElapsed(0);
     setRounds(0);
     setSaved(false);
@@ -84,41 +111,53 @@ function StopwatchTracker({
 
   if (countdown !== null) return <CountdownToStart count={countdown} />;
 
-  return (
-    <div className="flex flex-col items-center gap-5 py-2">
-      {/* Clock */}
-      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${running ? "text-primary" : saved ? "text-green-400" : "text-foreground"}`}>
+  const timerBody = (fs: boolean) => (
+    <div className={`flex flex-col items-center gap-6 ${fs ? "w-full px-8" : "py-2"}`}>
+      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${running ? "text-primary" : saved ? "text-green-400" : "text-foreground"} ${fs ? "text-[96px]" : "text-6xl"}`}>
         {fmtTime(elapsed)}
       </div>
-      {saved && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Saved ✓</p>}
+      {saved && !fs && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Saved ✓</p>}
 
-      {/* Round counter */}
-      <div className="flex flex-col items-center gap-1">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Rounds</p>
-        <div className="flex items-center gap-4">
-          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
-          <span className="text-5xl font-mono font-black w-16 text-center tabular-nums">{rounds}</span>
-          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => r + 1)}><Plus className="h-4 w-4" /></Button>
+      <div className="flex flex-col items-center gap-2">
+        <p className={`font-mono uppercase tracking-widest text-muted-foreground ${fs ? "text-sm" : "text-[10px]"}`}>Rounds</p>
+        <div className="flex items-center gap-5">
+          <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
+          <span className={`font-mono font-black tabular-nums text-center ${fs ? "text-7xl w-24" : "text-5xl w-16"}`}>{rounds}</span>
+          <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => r + 1)}><Plus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {!running ? (
-          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2" disabled={saved}>
+          <Button type="button" onClick={handleStart} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`} disabled={saved}>
             <Play className="h-4 w-4" />{elapsed === 0 ? "Start" : "Resume"}
           </Button>
         ) : (
-          <Button type="button" onClick={handleStop} variant="destructive" className="font-mono uppercase gap-2">
+          <Button type="button" onClick={handleStop} variant="destructive" className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
             <Square className="h-4 w-4" />Stop &amp; Save
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
+        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
           <RotateCcw className="h-3.5 w-3.5" />Reset
         </Button>
+        {running && !fs && (
+          <Button type="button" variant="outline" size="icon" onClick={() => setFullscreen(true)} title="Fullscreen">
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
+
+  if (fullscreen) {
+    return (
+      <FullscreenTimerOverlay onClose={() => setFullscreen(false)}>
+        {timerBody(true)}
+      </FullscreenTimerOverlay>
+    );
+  }
+
+  return timerBody(false);
 }
 
 /* ─── EMOM timer: configurable interval that resets until total time is up ─── */
@@ -131,11 +170,12 @@ function EmomTimer() {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
   const [currentInterval, setCurrentInterval] = useState(1);
+  const [fullscreen, setFullscreen] = useState(false);
   const intervalMinRef = useRef(intervalMin);
 
   useEffect(() => { intervalMinRef.current = intervalMin; }, [intervalMin]);
 
-  /* 10s countdown before start */
+  /* 10s countdown → auto fullscreen on start */
   useEffect(() => {
     if (countdown === null) return;
     if (countdown <= 0) {
@@ -146,6 +186,7 @@ function EmomTimer() {
         setCurrentInterval(1);
         setDone(false);
         setRunning(true);
+        setFullscreen(true);
       }, 700);
       return () => clearTimeout(id);
     }
@@ -167,6 +208,7 @@ function EmomTimer() {
       setTotalSec(r => {
         if (r <= 1) {
           setRunning(false);
+          setFullscreen(false);
           setDone(true);
           return 0;
         }
@@ -185,6 +227,7 @@ function EmomTimer() {
     setRunning(false);
     setDone(false);
     setCountdown(null);
+    setFullscreen(false);
     setIntervalSec(intervalMin * 60);
     setTotalSec(totalMin * 60);
     setCurrentInterval(1);
@@ -192,60 +235,45 @@ function EmomTimer() {
 
   if (countdown !== null) return <CountdownToStart count={countdown} />;
 
-  return (
-    <div className="flex flex-col items-center gap-5 py-2">
-      {/* Setup (only before start) */}
-      {!running && !done && (
+  const timerBody = (fs: boolean) => (
+    <div className={`flex flex-col items-center gap-5 ${fs ? "w-full px-8" : "py-2"}`}>
+      {/* Setup (only before start, not fullscreen) */}
+      {!running && !done && !fs && (
         <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
           <div className="space-y-1 text-center">
             <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Interval (min)</Label>
-            <Input
-              type="number"
-              value={intervalMin}
-              onChange={e => { const v = parseInt(e.target.value) || 1; setIntervalMin(v); setIntervalSec(v * 60); }}
-              className="font-mono text-center h-9"
-              min={1}
-            />
+            <Input type="number" value={intervalMin} onChange={e => { const v = parseInt(e.target.value) || 1; setIntervalMin(v); setIntervalSec(v * 60); }} className="font-mono text-center h-9" min={1} />
           </div>
           <div className="space-y-1 text-center">
             <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total (min)</Label>
-            <Input
-              type="number"
-              value={totalMin}
-              onChange={e => { const v = parseInt(e.target.value) || 1; setTotalMin(v); setTotalSec(v * 60); }}
-              className="font-mono text-center h-9"
-              min={1}
-            />
+            <Input type="number" value={totalMin} onChange={e => { const v = parseInt(e.target.value) || 1; setTotalMin(v); setTotalSec(v * 60); }} className="font-mono text-center h-9" min={1} />
           </div>
         </div>
       )}
 
       {/* Interval status */}
       {(running || done) && (
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+        <p className={`font-mono uppercase tracking-widest text-muted-foreground ${fs ? "text-base" : "text-[11px]"}`}>
           Interval {currentInterval} / {totalIntervals}
         </p>
       )}
 
       {/* Interval countdown */}
-      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter transition-colors ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : "text-foreground"}`}>
+      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : "text-foreground"} ${fs ? "text-[110px]" : "text-6xl"}`}>
         {fmtTime(intervalSec)}
       </div>
 
       {/* Progress bar */}
       {(running || done) && (
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${isLastSeconds ? "bg-destructive" : "bg-primary"}`}
-            style={{ width: `${pct * 100}%` }}
-          />
+        <div className={`w-full bg-muted rounded-full overflow-hidden ${fs ? "h-3 max-w-sm" : "h-2"}`}>
+          <div className={`h-full rounded-full transition-all ${isLastSeconds ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct * 100}%` }} />
         </div>
       )}
 
       {/* Total remaining */}
       {(running || done) && (
-        <p className="font-mono text-sm text-muted-foreground">
-          Total remaining: <span className="font-bold text-foreground">{fmtTime(totalSec)}</span>
+        <p className={`font-mono text-muted-foreground ${fs ? "text-lg" : "text-sm"}`}>
+          Total remaining: <span className={`font-bold text-foreground`}>{fmtTime(totalSec)}</span>
         </p>
       )}
 
@@ -254,26 +282,41 @@ function EmomTimer() {
       {/* Controls */}
       <div className="flex gap-2">
         {!running && !done && (
-          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2">
+          <Button type="button" onClick={handleStart} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
             <Play className="h-4 w-4" />Start
           </Button>
         )}
         {running && (
-          <Button type="button" onClick={() => setRunning(false)} variant="outline" className="font-mono uppercase gap-2">
+          <Button type="button" onClick={() => setRunning(false)} variant="outline" className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
             <Square className="h-4 w-4" />Pause
           </Button>
         )}
         {!running && !done && intervalSec < intervalMin * 60 && (
-          <Button type="button" onClick={() => setRunning(true)} className="font-mono uppercase gap-2">
+          <Button type="button" onClick={() => setRunning(true)} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
             <Play className="h-4 w-4" />Resume
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
+        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
           <RotateCcw className="h-3.5 w-3.5" />Reset
         </Button>
+        {running && !fs && (
+          <Button type="button" variant="outline" size="icon" onClick={() => setFullscreen(true)} title="Fullscreen">
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
+
+  if (fullscreen) {
+    return (
+      <FullscreenTimerOverlay onClose={() => setFullscreen(false)}>
+        {timerBody(true)}
+      </FullscreenTimerOverlay>
+    );
+  }
+
+  return timerBody(false);
 }
 
 /* ─── helpers ─── */
@@ -358,23 +401,37 @@ export default function LogNewPage() {
   const prevMap = useMemo(() => buildPrevMap(allLogs), [allLogs]);
 
   const selectedWorkoutId = workoutIdFromUrl ? parseInt(workoutIdFromUrl) : 0;
-  const templateWorkout = useMemo(
-    () => workoutIdFromUrl && workouts ? workouts.find(w => w.id === selectedWorkoutId) ?? null : null,
-    [workouts, workoutIdFromUrl, selectedWorkoutId]
-  );
+
+  /* Resolve template synchronously from React Query cache on first render */
+  const getInitialTemplate = () => {
+    if (!workoutIdFromUrl) return null;
+    const cached = queryClient.getQueryData<any[]>(getListWorkoutsQueryKey());
+    return cached?.find((w: any) => w.id === selectedWorkoutId) ?? null;
+  };
+  const initialTemplate = useMemo(getInitialTemplate, []); // eslint-disable-line
 
   const [selectedTemplateId, setSelectedTemplateId] = useState(workoutIdFromUrl || "");
-  const [workoutName, setWorkoutName] = useState("");
-  const [workoutType, setWorkoutType] = useState("bodybuilding");
+  const [workoutName, setWorkoutName] = useState(initialTemplate?.name ?? "");
+  const [workoutType, setWorkoutType] = useState(initialTemplate?.type ?? "bodybuilding");
   const [loggedAt, setLoggedAt] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [durationMinutes, setDurationMinutes] = useState("");
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState(4);
-  const [templateApplied, setTemplateApplied] = useState(false);
 
-  const [bbResults, setBbResults] = useState<ExerciseResult[]>([
-    { exerciseName: "", sets: [{ reps: 0, weight: 0 }] }
-  ]);
+  const [bbResults, setBbResults] = useState<ExerciseResult[]>(() => {
+    if (initialTemplate?.type === "bodybuilding") {
+      try {
+        const exs = JSON.parse(initialTemplate.exercises);
+        if (Array.isArray(exs) && exs.length > 0) {
+          return exs.map((ex: any) => ({
+            exerciseName: ex.name,
+            sets: Array.from({ length: ex.sets || 3 }, () => ({ reps: ex.reps || 0, weight: ex.weight || 0 }))
+          }));
+        }
+      } catch {}
+    }
+    return [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }];
+  });
 
   const [amrapRounds, setAmrapRounds] = useState("");
   const [amrapPartialReps, setAmrapPartialReps] = useState("");
@@ -384,17 +441,31 @@ export default function LogNewPage() {
   const [cardioDuration, setCardioDuration] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
-  const [cfText, setCfText] = useState("");
-
-  /* Auto-apply template when loaded from URL */
-  useEffect(() => {
-    if (!templateWorkout || templateApplied) return;
-    setWorkoutName(templateWorkout.name);
-    setWorkoutType(templateWorkout.type);
-    setSelectedTemplateId(templateWorkout.id.toString());
-    if (templateWorkout.type === "bodybuilding") {
+  const [cfText, setCfText] = useState(() => {
+    if (initialTemplate && ["amrap", "emom", "rft"].includes(initialTemplate.type)) {
       try {
-        const exs = JSON.parse(templateWorkout.exercises);
+        const parsed = JSON.parse(initialTemplate.exercises);
+        return parsed?.freeText ?? "";
+      } catch {}
+    }
+    return "";
+  });
+
+  /* Fallback: apply template if cache was empty on mount but loads later */
+  const appliedRef = useRef(false);
+  const templateFromList = useMemo(
+    () => workoutIdFromUrl && workouts ? workouts.find(w => w.id === selectedWorkoutId) ?? null : null,
+    [workouts, workoutIdFromUrl, selectedWorkoutId]
+  );
+  useEffect(() => {
+    if (!templateFromList || appliedRef.current || initialTemplate) return;
+    appliedRef.current = true;
+    setWorkoutName(templateFromList.name);
+    setWorkoutType(templateFromList.type);
+    setSelectedTemplateId(templateFromList.id.toString());
+    if (templateFromList.type === "bodybuilding") {
+      try {
+        const exs = JSON.parse(templateFromList.exercises);
         if (Array.isArray(exs) && exs.length > 0) {
           setBbResults(exs.map((ex: any) => ({
             exerciseName: ex.name,
@@ -403,14 +474,13 @@ export default function LogNewPage() {
         }
       } catch {}
     }
-    if (["amrap", "emom", "rft"].includes(templateWorkout.type)) {
+    if (["amrap", "emom", "rft"].includes(templateFromList.type)) {
       try {
-        const parsed = JSON.parse(templateWorkout.exercises);
+        const parsed = JSON.parse(templateFromList.exercises);
         if (parsed?.freeText) setCfText(parsed.freeText);
       } catch {}
     }
-    setTemplateApplied(true);
-  }, [templateWorkout, templateApplied]);
+  }, [templateFromList, initialTemplate]);
 
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);

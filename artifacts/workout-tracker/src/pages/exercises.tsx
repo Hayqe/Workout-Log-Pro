@@ -238,9 +238,8 @@ export default function ExercisesPage() {
             const isOpen = expandedId === ex.id;
             return (
               <Card key={ex.id} className={`bg-card border-border transition-all ${isOpen ? "border-primary/40" : "hover:border-primary/20"}`}>
-                <button
-                  type="button"
-                  className="w-full text-left"
+                <div
+                  className="w-full cursor-pointer select-none"
                   onClick={() => toggleExpand(ex.id)}
                 >
                   <CardContent className="p-4 flex items-center justify-between gap-4">
@@ -267,7 +266,7 @@ export default function ExercisesPage() {
                       <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
                     </div>
                   </CardContent>
-                </button>
+                </div>
 
                 {isOpen && (
                   <div className="border-t border-border px-4 pb-4 pt-4 animate-in slide-in-from-top-2 duration-200">
