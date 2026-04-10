@@ -23,26 +23,65 @@ function fmtTime(s: number) {
   return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
-/* ─── RFT tracker: stopwatch + round counter ─── */
-function RftTracker({ onTimeSet }: { onTimeSet: (t: string) => void }) {
+/* ─── 10-second countdown overlay ─── */
+function CountdownToStart({ count }: { count: number }) {
+  const isGo = count === 0;
+  return (
+    <div className="flex flex-col items-center gap-3 py-6">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Starting in…</p>
+      <div className={`text-8xl font-mono font-black tabular-nums transition-all ${isGo ? "text-green-400 scale-125" : "text-primary"}`}>
+        {isGo ? "GO!" : count}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Shared stopwatch + round counter (used by both RFT and AMRAP) ─── */
+function StopwatchTracker({
+  onStop,
+}: {
+  onStop: (rounds: number, time: string) => void;
+}) {
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [rounds, setRounds] = useState(0);
   const [saved, setSaved] = useState(false);
 
+  /* countdown */
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      const id = setTimeout(() => { setCountdown(null); setRunning(true); }, 700);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => setCountdown(c => c !== null ? c - 1 : null), 1000);
+    return () => clearTimeout(id);
+  }, [countdown]);
+
+  /* stopwatch */
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(id);
   }, [running]);
 
+  const handleStart = () => { setSaved(false); setCountdown(10); };
   const handleStop = () => {
     setRunning(false);
     const t = fmtTime(elapsed);
-    onTimeSet(t);
+    onStop(rounds, t);
     setSaved(true);
   };
-  const handleReset = () => { setRunning(false); setElapsed(0); setRounds(0); setSaved(false); };
+  const handleReset = () => {
+    setRunning(false);
+    setCountdown(null);
+    setElapsed(0);
+    setRounds(0);
+    setSaved(false);
+  };
+
+  if (countdown !== null) return <CountdownToStart count={countdown} />;
 
   return (
     <div className="flex flex-col items-center gap-5 py-2">
@@ -50,7 +89,7 @@ function RftTracker({ onTimeSet }: { onTimeSet: (t: string) => void }) {
       <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${running ? "text-primary" : saved ? "text-green-400" : "text-foreground"}`}>
         {fmtTime(elapsed)}
       </div>
-      {saved && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Time saved ✓</p>}
+      {saved && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Saved ✓</p>}
 
       {/* Round counter */}
       <div className="flex flex-col items-center gap-1">
@@ -65,7 +104,7 @@ function RftTracker({ onTimeSet }: { onTimeSet: (t: string) => void }) {
       {/* Controls */}
       <div className="flex gap-2">
         {!running ? (
-          <Button type="button" onClick={() => { setRunning(true); setSaved(false); }} className="font-mono uppercase gap-2" disabled={saved}>
+          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2" disabled={saved}>
             <Play className="h-4 w-4" />{elapsed === 0 ? "Start" : "Resume"}
           </Button>
         ) : (
@@ -81,129 +120,11 @@ function RftTracker({ onTimeSet }: { onTimeSet: (t: string) => void }) {
   );
 }
 
-/* ─── AMRAP tracker: countdown + round + partial rep counter ─── */
-function AmrapTracker({
-  defaultMinutes,
-  onRoundsSet,
-  onPartialSet,
-}: {
-  defaultMinutes: number;
-  onRoundsSet: (r: string) => void;
-  onPartialSet: (r: string) => void;
-}) {
-  const [totalMin, setTotalMin] = useState(defaultMinutes);
-  const [remaining, setRemaining] = useState(defaultMinutes * 60);
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
-  const [rounds, setRounds] = useState(0);
-  const [partial, setPartial] = useState(0);
-  const totalMinRef = useRef(totalMin);
-
-  useEffect(() => { totalMinRef.current = totalMin; }, [totalMin]);
-
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
-      setRemaining(r => {
-        if (r <= 1) {
-          setRunning(false);
-          setDone(true);
-          return 0;
-        }
-        return r - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [running]);
-
-  useEffect(() => {
-    if (done) {
-      onRoundsSet(rounds.toString());
-      onPartialSet(partial.toString());
-    }
-  }, [done]);
-
-  const handleStart = () => {
-    if (!running && !done) {
-      setRemaining(totalMin * 60);
-      setRounds(0);
-      setPartial(0);
-      setRunning(true);
-    }
-  };
-  const handleReset = () => { setRunning(false); setDone(false); setRemaining(totalMin * 60); setRounds(0); setPartial(0); };
-
-  const pct = 1 - remaining / (totalMin * 60);
-
-  return (
-    <div className="flex flex-col items-center gap-5 py-2">
-      {/* Setup row (only before start) */}
-      {!running && !done && (
-        <div className="flex items-center gap-3">
-          <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Time cap (min)</Label>
-          <Input
-            type="number"
-            value={totalMin}
-            onChange={e => { const v = parseInt(e.target.value) || 1; setTotalMin(v); setRemaining(v * 60); }}
-            className="font-mono w-20 h-8 text-center"
-            min={1}
-          />
-        </div>
-      )}
-
-      {/* Countdown */}
-      <div className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${done ? "text-green-400" : running ? "text-primary" : "text-foreground"}`}>
-        {fmtTime(remaining)}
-      </div>
-
-      {/* Progress bar */}
-      {(running || done) && (
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct * 100}%` }} />
-        </div>
-      )}
-
-      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Time's up — score saved ✓</p>}
-
-      {/* Counters */}
-      <div className="grid grid-cols-2 gap-8">
-        <div className="flex flex-col items-center gap-1">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Rounds</p>
-          <div className="flex items-center gap-3">
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
-            <span className="text-5xl font-mono font-black w-12 text-center tabular-nums">{rounds}</span>
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setRounds(r => r + 1)}><Plus className="h-4 w-4" /></Button>
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">+ Reps</p>
-          <div className="flex items-center gap-3">
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setPartial(r => Math.max(0, r - 1))}><Minus className="h-4 w-4" /></Button>
-            <span className="text-5xl font-mono font-black w-12 text-center tabular-nums">{partial}</span>
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setPartial(r => r + 1)}><Plus className="h-4 w-4" /></Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex gap-2">
-        {!running && !done && (
-          <Button type="button" onClick={handleStart} className="font-mono uppercase gap-2">
-            <Play className="h-4 w-4" />Start
-          </Button>
-        )}
-        <Button type="button" variant="outline" onClick={handleReset} className="font-mono uppercase gap-2">
-          <RotateCcw className="h-3.5 w-3.5" />Reset
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 /* ─── EMOM timer: configurable interval that resets until total time is up ─── */
 function EmomTimer() {
   const [intervalMin, setIntervalMin] = useState(1);
   const [totalMin, setTotalMin] = useState(20);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [intervalSec, setIntervalSec] = useState(60);
   const [totalSec, setTotalSec] = useState(1200);
   const [running, setRunning] = useState(false);
@@ -213,6 +134,25 @@ function EmomTimer() {
 
   useEffect(() => { intervalMinRef.current = intervalMin; }, [intervalMin]);
 
+  /* 10s countdown before start */
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      const id = setTimeout(() => {
+        setCountdown(null);
+        setIntervalSec(intervalMinRef.current * 60);
+        setTotalSec(totalMin * 60);
+        setCurrentInterval(1);
+        setDone(false);
+        setRunning(true);
+      }, 700);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => setCountdown(c => c !== null ? c - 1 : null), 1000);
+    return () => clearTimeout(id);
+  }, [countdown, totalMin]);
+
+  /* interval tick */
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
@@ -239,20 +179,17 @@ function EmomTimer() {
   const pct = 1 - intervalSec / (intervalMin * 60);
   const isLastSeconds = intervalSec <= 5 && running;
 
-  const handleStart = () => {
-    setIntervalSec(intervalMin * 60);
-    setTotalSec(totalMin * 60);
-    setCurrentInterval(1);
-    setDone(false);
-    setRunning(true);
-  };
+  const handleStart = () => { setCountdown(10); };
   const handleReset = () => {
     setRunning(false);
     setDone(false);
+    setCountdown(null);
     setIntervalSec(intervalMin * 60);
     setTotalSec(totalMin * 60);
     setCurrentInterval(1);
   };
+
+  if (countdown !== null) return <CountdownToStart count={countdown} />;
 
   return (
     <div className="flex flex-col items-center gap-5 py-2">
@@ -294,7 +231,7 @@ function EmomTimer() {
         {fmtTime(intervalSec)}
       </div>
 
-      {/* Interval progress bar */}
+      {/* Progress bar */}
       {(running || done) && (
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
           <div
@@ -311,7 +248,7 @@ function EmomTimer() {
         </p>
       )}
 
-      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Done — {totalIntervals} intervals completed ✓</p>}
+      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Done — {totalIntervals} intervals ✓</p>}
 
       {/* Controls */}
       <div className="flex gap-2">
@@ -325,7 +262,7 @@ function EmomTimer() {
             <Square className="h-4 w-4" />Pause
           </Button>
         )}
-        {!running && done === false && intervalSec < intervalMin * 60 && (
+        {!running && !done && intervalSec < intervalMin * 60 && (
           <Button type="button" onClick={() => setRunning(true)} className="font-mono uppercase gap-2">
             <Play className="h-4 w-4" />Resume
           </Button>
@@ -370,8 +307,6 @@ function PrevWeightHint({ exerciseName, prevMap }: { exerciseName: string; prevM
   );
 }
 
-type PrevCfResult = { loggedAt: string; results: string };
-
 function formatCfResult(type: string, results: string): string {
   try {
     const r = JSON.parse(results);
@@ -382,7 +317,7 @@ function formatCfResult(type: string, results: string): string {
   return "—";
 }
 
-function PrevCfResults({ logs, workoutId, workoutType }: { logs: PrevCfResult[] | undefined; workoutId: string; workoutType: string }) {
+function PrevCfResults({ logs, workoutId, workoutType }: { logs: any[] | undefined; workoutId: string; workoutType: string }) {
   const prev = (logs || [])
     .filter((l: any) => l.workoutId?.toString() === workoutId && l.workoutType === workoutType)
     .sort((a: any, b: any) => b.loggedAt.localeCompare(a.loggedAt))
@@ -447,8 +382,6 @@ export default function LogNewPage() {
   const [cardioElevation, setCardioElevation] = useState("");
   const [cfText, setCfText] = useState("");
 
-  const [templateAmrapMin, setTemplateAmrapMin] = useState(20);
-
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);
     if (id && workouts) {
@@ -472,7 +405,6 @@ export default function LogNewPage() {
             const parsed = JSON.parse(w.exercises);
             if (parsed?.freeText) setCfText(parsed.freeText);
           } catch {}
-          if (w.duration) setTemplateAmrapMin(w.duration);
         }
       }
     }
@@ -563,7 +495,7 @@ export default function LogNewPage() {
           </CardContent>
         </Card>
 
-        {/* CrossFit whiteboard — always editable */}
+        {/* CrossFit whiteboard */}
         {isCrossfit && (
           <Card className="bg-card border-border">
             <CardHeader>
@@ -619,7 +551,12 @@ export default function LogNewPage() {
                         <span className="font-mono text-xs text-muted-foreground w-12">Set {si + 1}</span>
                         <Input type="number" value={set.reps || ""} onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: r.sets.map((s, sj) => sj === si ? { ...s, reps: parseInt(e.target.value) || 0 } : s) } : r))} placeholder="Reps" className="font-mono h-8 w-20" />
                         <Input type="number" value={set.weight || ""} onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: r.sets.map((s, sj) => sj === si ? { ...s, weight: parseFloat(e.target.value) || 0 } : s) } : r))} placeholder="kg" className="font-mono h-8 w-20" />
-                        {ex.sets.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: r.sets.filter((_, sj) => sj !== si) } : r))}><X className="h-3 w-3" /></Button>}
+                        {ex.sets.length > 1 && (
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground"
+                            onClick={() => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: r.sets.filter((_, sj) => sj !== si) } : r))}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                     <Button type="button" variant="ghost" size="sm" className="font-mono uppercase text-xs text-muted-foreground ml-4 gap-1"
@@ -644,7 +581,7 @@ export default function LogNewPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <RftTracker onTimeSet={setRftTime} />
+              <StopwatchTracker onStop={(rounds, time) => { setRftTime(time); }} />
               <div className="mt-5 border-t border-border pt-4 space-y-2">
                 <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time (mm:ss)</Label>
                 <Input value={rftTime} onChange={e => setRftTime(e.target.value)} placeholder="11:30" className="font-mono" />
@@ -653,18 +590,14 @@ export default function LogNewPage() {
           </Card>
         )}
 
-        {/* AMRAP tracker */}
+        {/* AMRAP tracker — same stopwatch as RFT, rounds auto-saved */}
         {workoutType === "amrap" && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Score</CardTitle>
             </CardHeader>
             <CardContent>
-              <AmrapTracker
-                defaultMinutes={templateAmrapMin}
-                onRoundsSet={setAmrapRounds}
-                onPartialSet={setAmrapPartialReps}
-              />
+              <StopwatchTracker onStop={(rounds, _time) => { setAmrapRounds(rounds.toString()); }} />
               <div className="mt-5 border-t border-border pt-4 grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-mono text-xs uppercase">Rounds</Label>

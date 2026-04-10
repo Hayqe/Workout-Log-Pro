@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   useListScheduledWorkouts, getListScheduledWorkoutsQueryKey,
   useCreateScheduledWorkout, useUpdateScheduledWorkout, useDeleteScheduledWorkout,
-  useListWorkouts, getListWorkoutsQueryKey
+  useListWorkouts, getListWorkoutsQueryKey,
+  useListWorkoutLogs, getListWorkoutLogsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ export default function CalendarPage() {
 
   const { data: scheduled } = useListScheduledWorkouts(undefined, { query: { queryKey: getListScheduledWorkoutsQueryKey({}) } });
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
+  const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
   const createScheduled = useCreateScheduledWorkout();
   const updateScheduled = useUpdateScheduledWorkout();
   const deleteScheduled = useDeleteScheduledWorkout();
@@ -60,6 +62,19 @@ export default function CalendarPage() {
   const getScheduledForDay = (day: Date) => {
     return (scheduled || []).filter(s => {
       try { return isSameDay(parseISO(s.scheduledDate), day); } catch { return false; }
+    });
+  };
+
+  const getAdHocLogsForDay = (day: Date) => {
+    const dayStr = format(day, "yyyy-MM-dd");
+    const scheduledOnDay = getScheduledForDay(day);
+    return (allLogs || []).filter((log: any) => {
+      const logDate = (log.loggedAt || "").split("T")[0];
+      if (logDate !== dayStr) return false;
+      const coveredByScheduled = scheduledOnDay.some(
+        s => s.completed && s.workoutId && s.workoutId === log.workoutId
+      );
+      return !coveredByScheduled;
     });
   };
 
@@ -138,8 +153,8 @@ export default function CalendarPage() {
             {[...Array(firstDayOfWeek)].map((_, i) => <div key={`empty-${i}`} />)}
             {days.map(day => {
               const dayScheduled = getScheduledForDay(day);
-              const hasWorkout = dayScheduled.length > 0;
-              const allDone = hasWorkout && dayScheduled.every(s => s.completed);
+              const adHocLogs = getAdHocLogsForDay(day);
+              const hasWorkout = dayScheduled.length > 0 || adHocLogs.length > 0;
               const today = isToday(day);
               return (
                 <button
@@ -153,8 +168,11 @@ export default function CalendarPage() {
                   <span className={`text-[11px] font-bold ${today ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</span>
                   {hasWorkout && (
                     <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
-                      {dayScheduled.slice(0, 3).map(s => (
+                      {dayScheduled.slice(0, 2).map(s => (
                         <WorkoutTypeChip key={s.id} type={s.workoutType} done={s.completed} />
+                      ))}
+                      {adHocLogs.slice(0, 2).map((log: any) => (
+                        <span key={log.id} className="inline-flex items-center rounded px-1 py-0 font-mono text-[8px] font-bold leading-4 bg-green-900/70 text-green-300 w-full justify-center">✓</span>
                       ))}
                     </div>
                   )}
