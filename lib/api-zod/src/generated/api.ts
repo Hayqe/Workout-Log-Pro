@@ -171,6 +171,8 @@ export const ListScheduledWorkoutsResponseItem = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
+  isPublic: zod.boolean().optional(),
+  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 export const ListScheduledWorkoutsResponse = zod.array(
@@ -186,6 +188,7 @@ export const CreateScheduledWorkoutBody = zod.object({
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
 });
 
 /**
@@ -203,6 +206,8 @@ export const GetScheduledWorkoutResponse = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
+  isPublic: zod.boolean().optional(),
+  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 
@@ -220,6 +225,7 @@ export const UpdateScheduledWorkoutBody = zod.object({
   scheduledDate: zod.string().optional(),
   notes: zod.string().nullish(),
   completed: zod.boolean().optional(),
+  isPublic: zod.boolean().optional(),
 });
 
 export const UpdateScheduledWorkoutResponse = zod.object({
@@ -230,6 +236,8 @@ export const UpdateScheduledWorkoutResponse = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
+  isPublic: zod.boolean().optional(),
+  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 

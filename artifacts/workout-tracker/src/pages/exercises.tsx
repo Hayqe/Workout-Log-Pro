@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListExercises, getListExercisesQueryKey, useCreateExercise, useDeleteExercise } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { Trash2, Plus, Dumbbell, Search } from "lucide-react";
+import { Trash2, Plus, Dumbbell, Search, TrendingUp } from "lucide-react";
 
 const MUSCLE_GROUPS = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core", "Full Body", "Hips", "Cardio"];
 const CATEGORIES = ["bodybuilding", "crossfit", "cardio"];
@@ -19,6 +20,7 @@ export default function ExercisesPage() {
   const createExercise = useCreateExercise();
   const deleteExercise = useDeleteExercise();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -45,7 +47,8 @@ export default function ExercisesPage() {
     setDialogOpen(false);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     if (!confirm("Remove this exercise?")) return;
     await deleteExercise.mutateAsync({ id });
     queryClient.invalidateQueries({ queryKey: getListExercisesQueryKey() });
@@ -125,11 +128,15 @@ export default function ExercisesPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((ex) => (
-            <Card key={ex.id} className="bg-card border-border">
+            <Card
+              key={ex.id}
+              className="bg-card border-border cursor-pointer hover:border-primary/50 hover:bg-card/80 transition-all group"
+              onClick={() => navigate(`/exercises/${ex.id}`)}
+            >
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-bold text-foreground">{ex.name}</span>
+                    <span className="font-bold text-foreground group-hover:text-primary transition-colors">{ex.name}</span>
                     <WorkoutBadge type={ex.category} />
                   </div>
                   <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground">
@@ -137,14 +144,17 @@ export default function ExercisesPage() {
                     {ex.description && <span className="truncate max-w-[300px]">{ex.description}</span>}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(ex.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={(e) => handleDelete(e, ex.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

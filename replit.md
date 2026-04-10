@@ -32,7 +32,11 @@ GainLog — A multi-user workout tracking web platform with:
 - **Workout planner** — monthly calendar view with scheduled workouts
 - **Log book** — record results for every session; bodybuilding logs include a built-in rest timer
 - **Dashboard** — summary stats, weekly volume chart, upcoming sessions, recent logs
-- **Exercise library** — searchable list of exercises
+- **Exercise library** — searchable list with click-through to individual exercise progress pages
+- **Exercise autocomplete** — typing in the workout builder shows a dropdown of matching exercises from the library; quick-add adds a new one inline
+- **Exercise progress chart** — clicking an exercise shows a Recharts line chart of max weight over time, grouped by rep count (separate line per rep range)
+- **Previous weights hint** — when logging a bodybuilding session, each exercise shows the last session's sets (date + reps×weight) as a subtle hint below the name
+- **Calendar visibility** — when scheduling a workout, choose "Only me" (private) or "Everyone" (public); public workouts from other users appear on your calendar marked "shared" and are read-only
 
 ## Database Schema
 

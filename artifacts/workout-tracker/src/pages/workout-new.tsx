@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ExerciseAutocomplete } from "@/components/ui/exercise-autocomplete";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { Link } from "wouter";
 
@@ -44,7 +45,7 @@ export default function WorkoutNewPage() {
 
   const handleAddExercise = () => setExercises([...exercises, { name: "" }]);
   const handleRemoveExercise = (i: number) => setExercises(exercises.filter((_, idx) => idx !== i));
-  const updateExercise = (i: number, field: string, value: string | number) => {
+  const updateExercise = (i: number, field: string, value: string | number | boolean) => {
     setExercises(exercises.map((ex, idx) => idx === i ? { ...ex, [field]: value } : ex));
   };
 
@@ -70,6 +71,7 @@ export default function WorkoutNewPage() {
   const isBodybuilding = type === "bodybuilding";
   const isCrossfit = ["amrap", "emom", "rft"].includes(type);
   const isCardio = type === "cardio";
+  const exerciseCategory = isBodybuilding ? "bodybuilding" : isCrossfit ? "crossfit" : "cardio";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
@@ -164,11 +166,11 @@ export default function WorkoutNewPage() {
               <div key={i} className="space-y-3 p-4 rounded border border-border bg-background/50">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <Input
+                  <ExerciseAutocomplete
                     value={ex.name}
-                    onChange={e => updateExercise(i, "name", e.target.value)}
+                    onChange={val => updateExercise(i, "name", val)}
+                    category={exerciseCategory}
                     placeholder="Exercise name"
-                    className="font-mono flex-1"
                   />
                   {exercises.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>

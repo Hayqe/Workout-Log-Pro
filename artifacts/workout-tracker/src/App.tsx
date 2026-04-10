@@ -14,6 +14,7 @@ import LogListPage from "@/pages/log-list";
 import LogNewPage from "@/pages/log-new";
 import LogDetailPage from "@/pages/log-detail";
 import ExercisesPage from "@/pages/exercises";
+import ExerciseDetailPage from "@/pages/exercise-detail";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="/log/:id" component={LogDetailPage} />
         <Route path="/log" component={LogListPage} />
 
+        <Route path="/exercises/:id" component={ExerciseDetailPage} />
         <Route path="/exercises" component={ExercisesPage} />
 
         <Route component={NotFound} />

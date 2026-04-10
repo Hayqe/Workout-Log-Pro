@@ -84,6 +84,9 @@ export interface ScheduledWorkout {
   /** @nullable */
   notes?: string | null;
   completed: boolean;
+  isPublic?: boolean;
+  /** @nullable */
+  userId?: number | null;
   createdAt: string;
 }
 
@@ -95,6 +98,7 @@ export interface CreateScheduledWorkoutBody {
   scheduledDate: string;
   /** @nullable */
   notes?: string | null;
+  isPublic?: boolean;
 }
 
 export interface UpdateScheduledWorkoutBody {
@@ -106,6 +110,7 @@ export interface UpdateScheduledWorkoutBody {
   /** @nullable */
   notes?: string | null;
   completed?: boolean;
+  isPublic?: boolean;
 }
 
 export interface WorkoutLog {

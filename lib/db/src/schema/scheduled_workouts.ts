@@ -10,6 +10,7 @@ export const scheduledWorkoutsTable = pgTable("scheduled_workouts", {
   scheduledDate: text("scheduled_date").notNull(),
   notes: text("notes"),
   completed: boolean("completed").notNull().default(false),
+  isPublic: boolean("is_public").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   userId: integer("user_id"),
 });

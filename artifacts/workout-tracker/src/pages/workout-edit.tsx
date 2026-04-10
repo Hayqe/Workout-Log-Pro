@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExerciseAutocomplete } from "@/components/ui/exercise-autocomplete";
 import { ArrowLeft, Plus, X } from "lucide-react";
 
 const WORKOUT_TYPES = [
@@ -139,7 +140,7 @@ export default function WorkoutEditPage() {
               <div key={i} className="space-y-3 p-4 rounded border border-border bg-background/50">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <Input value={ex.name || ""} onChange={e => updateExercise(i, "name", e.target.value)} placeholder="Exercise name" className="font-mono flex-1" />
+                  <ExerciseAutocomplete value={ex.name || ""} onChange={val => updateExercise(i, "name", val)} placeholder="Exercise name" />
                   {exercises.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>
                       <X className="h-4 w-4" />

@@ -4,6 +4,7 @@ import {
   useCreateScheduledWorkout, useUpdateScheduledWorkout, useDeleteScheduledWorkout,
   useListWorkouts, getListWorkoutsQueryKey
 } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, Globe, Lock } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isToday } from "date-fns";
 import { Link } from "wouter";
 
@@ -26,9 +27,11 @@ export default function CalendarPage() {
   const [newWorkoutType, setNewWorkoutType] = useState("bodybuilding");
   const [newWorkoutId, setNewWorkoutId] = useState<string>("");
   const [newNotes, setNewNotes] = useState("");
+  const [newIsPublic, setNewIsPublic] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const { data: scheduled } = useListScheduledWorkouts({ query: { queryKey: getListScheduledWorkoutsQueryKey({}) } });
+  const { data: scheduled } = useListScheduledWorkouts(undefined, { query: { queryKey: getListScheduledWorkoutsQueryKey({}) } });
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const createScheduled = useCreateScheduledWorkout();
   const updateScheduled = useUpdateScheduledWorkout();
@@ -43,6 +46,8 @@ export default function CalendarPage() {
     });
   };
 
+  const isOwn = (s: { userId?: number | null }) => s.userId === user?.id;
+
   const handleDayClick = (day: Date) => {
     setSelectedDate(day);
     setDialogOpen(true);
@@ -50,6 +55,7 @@ export default function CalendarPage() {
     setNewWorkoutType("bodybuilding");
     setNewWorkoutId("");
     setNewNotes("");
+    setNewIsPublic(false);
   };
 
   const handleWorkoutSelect = (wId: string) => {
@@ -72,6 +78,7 @@ export default function CalendarPage() {
         workoutType: newWorkoutType,
         scheduledDate: format(selectedDate, "yyyy-MM-dd"),
         notes: newNotes || null,
+        isPublic: newIsPublic,
       }
     });
     queryClient.invalidateQueries({ queryKey: getListScheduledWorkoutsQueryKey({}) });
@@ -130,7 +137,7 @@ export default function CalendarPage() {
                   {hasWorkout && (
                     <div className="mt-0.5 flex flex-wrap gap-0.5 justify-center">
                       {dayScheduled.slice(0, 3).map(s => (
-                        <div key={s.id} className={`h-1.5 w-1.5 rounded-full ${allDone ? "bg-green-500" : "bg-primary"}`} />
+                        <div key={s.id} className={`h-1.5 w-1.5 rounded-full ${allDone ? "bg-green-500" : isOwn(s) ? "bg-primary" : "bg-muted-foreground"}`} />
                       ))}
                     </div>
                   )}
@@ -153,32 +160,46 @@ export default function CalendarPage() {
             {selectedDayScheduled.length > 0 && (
               <div className="space-y-2">
                 <p className="font-mono text-xs uppercase text-muted-foreground">Scheduled</p>
-                {selectedDayScheduled.map(s => (
-                  <div key={s.id} className={`flex items-center justify-between p-3 rounded border ${s.completed ? "border-green-500/30 bg-green-500/5" : "border-border"}`}>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold text-sm ${s.completed ? "line-through text-muted-foreground" : ""}`}>{s.workoutName}</span>
-                        <WorkoutBadge type={s.workoutType} />
+                {selectedDayScheduled.map(s => {
+                  const own = isOwn(s);
+                  const pub = (s as any).isPublic;
+                  return (
+                    <div key={s.id} className={`flex items-center justify-between p-3 rounded border ${s.completed ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}`}>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-bold text-sm ${s.completed ? "line-through text-muted-foreground" : ""}`}>{s.workoutName}</span>
+                          <WorkoutBadge type={s.workoutType} />
+                          {pub && (
+                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
+                              <Globe className="h-2.5 w-2.5" /> Public
+                            </span>
+                          )}
+                          {!own && (
+                            <span className="text-[9px] font-mono uppercase text-muted-foreground">shared</span>
+                          )}
+                        </div>
+                        {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
                       </div>
-                      {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      {!s.completed && (
-                        <Link href={`/log/new?scheduledId=${s.id}&workoutId=${s.workoutId || ""}`}>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
-                            Log
+                      {own && (
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
+                            <Check className="h-4 w-4" />
                           </Button>
-                        </Link>
+                          {!s.completed && (
+                            <Link href={`/log/new?scheduledId=${s.id}&workoutId=${s.workoutId || ""}`}>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
+                                Log
+                              </Button>
+                            </Link>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(s.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(s.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -214,6 +235,24 @@ export default function CalendarPage() {
                 <Label className="font-mono text-xs uppercase">Notes</Label>
                 <Input value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Optional notes..." className="font-mono" />
               </div>
+
+              <div className="flex items-center gap-3 py-1">
+                <button
+                  type="button"
+                  onClick={() => setNewIsPublic(false)}
+                  className={`flex items-center gap-2 flex-1 p-2.5 rounded border font-mono text-xs uppercase transition-all ${!newIsPublic ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                >
+                  <Lock className="h-3.5 w-3.5" /> Only me
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewIsPublic(true)}
+                  className={`flex items-center gap-2 flex-1 p-2.5 rounded border font-mono text-xs uppercase transition-all ${newIsPublic ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                >
+                  <Globe className="h-3.5 w-3.5" /> Everyone
+                </button>
+              </div>
+
               <Button
                 onClick={handleSchedule}
                 disabled={!newWorkoutName || createScheduled.isPending}

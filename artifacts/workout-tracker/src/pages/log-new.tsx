@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, Link } from "wouter";
 import { RestTimer } from "@/components/ui/rest-timer";
-import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
+import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Star, Plus, X } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, Star, Plus, X, History } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
@@ -19,6 +19,42 @@ type ExerciseResult = {
   exerciseName: string;
   sets: { reps: number; weight: number }[];
 };
+
+type PrevSet = { reps: number; weight: number };
+type PrevMap = Record<string, { sets: PrevSet[]; date: string }>;
+
+function buildPrevMap(logs: Array<{ workoutType: string; loggedAt: string; results: unknown }> | undefined): PrevMap {
+  if (!logs) return {};
+  const map: PrevMap = {};
+  const sorted = [...logs].sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
+  for (const log of sorted) {
+    if (log.workoutType !== "bodybuilding") continue;
+    try {
+      const results = JSON.parse(log.results as string) as ExerciseResult[];
+      for (const ex of results) {
+        const key = ex.exerciseName.toLowerCase().trim();
+        if (!map[key]) {
+          map[key] = { sets: ex.sets, date: log.loggedAt.split("T")[0] };
+        }
+      }
+    } catch {}
+  }
+  return map;
+}
+
+function PrevWeightHint({ exerciseName, prevMap }: { exerciseName: string; prevMap: PrevMap }) {
+  const key = exerciseName.toLowerCase().trim();
+  const prev = prevMap[key];
+  if (!prev || !exerciseName) return null;
+  const dateLabel = format(parseISO(prev.date), "MMM d");
+  const setsLabel = prev.sets.map(s => `${s.reps}×${s.weight}kg`).join(", ");
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground bg-muted/30 rounded px-2 py-1 mt-1">
+      <History className="h-3 w-3 shrink-0" />
+      <span>{dateLabel}: {setsLabel}</span>
+    </div>
+  );
+}
 
 export default function LogNewPage() {
   const [location, navigate] = useLocation();
@@ -28,6 +64,9 @@ export default function LogNewPage() {
   const queryClient = useQueryClient();
   const createLog = useCreateWorkoutLog();
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
+  const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
+
+  const prevMap = useMemo(() => buildPrevMap(allLogs), [allLogs]);
 
   const selectedWorkoutId = workoutIdFromUrl ? parseInt(workoutIdFromUrl) : 0;
   const { data: templateWorkout } = useGetWorkout(selectedWorkoutId, {
@@ -42,16 +81,12 @@ export default function LogNewPage() {
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState(4);
 
-  // Bodybuilding results
   const [bbResults, setBbResults] = useState<ExerciseResult[]>([
     { exerciseName: "", sets: [{ reps: 0, weight: 0 }] }
   ]);
 
-  // CrossFit results
   const [cfRoundsCompleted, setCfRoundsCompleted] = useState("");
   const [cfTime, setCfTime] = useState("");
-
-  // Cardio results
   const [cardioDistance, setCardioDistance] = useState("");
   const [cardioDuration, setCardioDuration] = useState("");
   const [cardioHR, setCardioHR] = useState("");
@@ -172,14 +207,20 @@ export default function LogNewPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {bbResults.map((ex, i) => (
-                <div key={i} className="p-4 rounded border border-border space-y-3">
+                <div key={i} className="p-4 rounded border border-border space-y-2">
                   <div className="flex items-center gap-2">
-                    <Input value={ex.exerciseName} onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, exerciseName: e.target.value } : r))} placeholder="Exercise name" className="font-mono" />
+                    <Input
+                      value={ex.exerciseName}
+                      onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, exerciseName: e.target.value } : r))}
+                      placeholder="Exercise name"
+                      className="font-mono"
+                    />
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setBbResults(bbResults.filter((_, ri) => ri !== i))}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="space-y-2">
+                  <PrevWeightHint exerciseName={ex.exerciseName} prevMap={prevMap} />
+                  <div className="space-y-2 pt-1">
                     {ex.sets.map((set, si) => (
                       <div key={si} className="flex items-center gap-2 pl-4">
                         <span className="font-mono text-xs text-muted-foreground w-12">Set {si + 1}</span>

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { db, scheduledWorkoutsTable } from "@workspace/db";
 import {
   CreateScheduledWorkoutBody,
@@ -19,7 +19,10 @@ const router: IRouter = Router();
 router.get("/scheduled-workouts", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session.userId!;
   const rows = await db.select().from(scheduledWorkoutsTable)
-    .where(eq(scheduledWorkoutsTable.userId, userId))
+    .where(or(
+      eq(scheduledWorkoutsTable.userId, userId),
+      eq(scheduledWorkoutsTable.isPublic, true),
+    ))
     .orderBy(scheduledWorkoutsTable.scheduledDate);
   res.json(ListScheduledWorkoutsResponse.parse(serializeRows(rows as Record<string, unknown>[])));
 });
@@ -43,7 +46,10 @@ router.get("/scheduled-workouts/:id", requireAuth, async (req, res): Promise<voi
   }
   const userId = req.session.userId!;
   const [row] = await db.select().from(scheduledWorkoutsTable)
-    .where(and(eq(scheduledWorkoutsTable.id, params.data.id), eq(scheduledWorkoutsTable.userId, userId)));
+    .where(or(
+      and(eq(scheduledWorkoutsTable.id, params.data.id), eq(scheduledWorkoutsTable.userId, userId)),
+      and(eq(scheduledWorkoutsTable.id, params.data.id), eq(scheduledWorkoutsTable.isPublic, true)),
+    ));
   if (!row) {
     res.status(404).json({ error: "Scheduled workout not found" });
     return;
