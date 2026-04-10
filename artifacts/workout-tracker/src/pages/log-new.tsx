@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
+import { RestTimer } from "@/components/ui/rest-timer";
 import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -197,6 +198,8 @@ export default function LogNewPage() {
             </CardContent>
           </Card>
         )}
+
+        {workoutType === "bodybuilding" && <RestTimer />}
 
         {(workoutType === "amrap" || workoutType === "emom") && (
           <Card className="bg-card border-border">

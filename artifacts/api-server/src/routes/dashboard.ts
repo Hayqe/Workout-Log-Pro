@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, workoutLogsTable, scheduledWorkoutsTable } from "@workspace/db";
-import { gte, lte, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router: IRouter = Router();
 
@@ -24,8 +25,9 @@ function getMonthBounds() {
   return { first, last };
 }
 
-router.get("/dashboard/summary", async (req, res): Promise<void> => {
-  const allLogs = await db.select().from(workoutLogsTable);
+router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const allLogs = await db.select().from(workoutLogsTable).where(eq(workoutLogsTable.userId, userId));
   const { monday, sunday } = getWeekBounds();
   const { first, last } = getMonthBounds();
 
@@ -48,7 +50,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
 
   const today = new Date().toISOString().split("T")[0];
   const endOfWeek = sunday.toISOString().split("T")[0];
-  const allScheduled = await db.select().from(scheduledWorkoutsTable);
+  const allScheduled = await db.select().from(scheduledWorkoutsTable).where(eq(scheduledWorkoutsTable.userId, userId));
   const scheduledThisWeek = allScheduled.filter(s => {
     return s.scheduledDate >= today && s.scheduledDate <= endOfWeek;
   }).length;
@@ -63,15 +65,17 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/recent-logs", async (req, res): Promise<void> => {
-  const logs = await db.select().from(workoutLogsTable);
+router.get("/dashboard/recent-logs", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const logs = await db.select().from(workoutLogsTable).where(eq(workoutLogsTable.userId, userId));
   const sorted = [...logs].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
   res.json(sorted.slice(0, 5));
 });
 
-router.get("/dashboard/upcoming", async (req, res): Promise<void> => {
+router.get("/dashboard/upcoming", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
   const today = new Date().toISOString().split("T")[0];
-  const all = await db.select().from(scheduledWorkoutsTable);
+  const all = await db.select().from(scheduledWorkoutsTable).where(eq(scheduledWorkoutsTable.userId, userId));
   const upcoming = all
     .filter(s => s.scheduledDate >= today && !s.completed)
     .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))
@@ -79,8 +83,9 @@ router.get("/dashboard/upcoming", async (req, res): Promise<void> => {
   res.json(upcoming);
 });
 
-router.get("/dashboard/weekly-volume", async (req, res): Promise<void> => {
-  const allLogs = await db.select().from(workoutLogsTable);
+router.get("/dashboard/weekly-volume", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const allLogs = await db.select().from(workoutLogsTable).where(eq(workoutLogsTable.userId, userId));
   const volumeMap: Record<string, { bodybuilding: number; amrap: number; emom: number; rft: number; cardio: number }> = {};
 
   for (const log of allLogs) {

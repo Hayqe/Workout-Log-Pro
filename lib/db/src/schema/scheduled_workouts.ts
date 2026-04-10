@@ -11,6 +11,7 @@ export const scheduledWorkoutsTable = pgTable("scheduled_workouts", {
   notes: text("notes"),
   completed: boolean("completed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  userId: integer("user_id"),
 });
 
 export const insertScheduledWorkoutSchema = createInsertSchema(scheduledWorkoutsTable).omit({ id: true, createdAt: true, completed: true });

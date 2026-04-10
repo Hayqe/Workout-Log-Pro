@@ -11,6 +11,7 @@ export const workoutsTable = pgTable("workouts", {
   rounds: integer("rounds"),
   exercises: text("exercises").notNull().default("[]"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  userId: integer("user_id"),
 });
 
 export const insertWorkoutSchema = createInsertSchema(workoutsTable).omit({ id: true, createdAt: true });

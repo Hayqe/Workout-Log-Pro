@@ -13,6 +13,7 @@ export const workoutLogsTable = pgTable("workout_logs", {
   results: text("results").notNull().default("{}"),
   rating: integer("rating"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  userId: integer("user_id"),
 });
 
 export const insertWorkoutLogSchema = createInsertSchema(workoutLogsTable).omit({ id: true, createdAt: true });

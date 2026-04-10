@@ -23,21 +23,24 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## Features
 
-GainLog — A workout tracking web platform with:
-- **Bodybuilding workouts** — exercises with sets, reps, and weight
+GainLog — A multi-user workout tracking web platform with:
+- **Authentication** — username/password login and registration, bcrypt-hashed passwords, session-based auth (express-session)
+- **Per-user data** — all workouts, logs, scheduled workouts, and exercises are scoped to the logged-in user
+- **Bodybuilding workouts** — exercises with sets, reps (+ optional max reps flag), and weight (can be empty in template, filled at log time)
 - **CrossFit-style workouts** — AMRAP, EMOM, and RFT formats
 - **Cardio workouts** — cycling/running with distance, duration, heart rate, elevation
 - **Workout planner** — monthly calendar view with scheduled workouts
-- **Log book** — record results for every session
+- **Log book** — record results for every session; bodybuilding logs include a built-in rest timer
 - **Dashboard** — summary stats, weekly volume chart, upcoming sessions, recent logs
 - **Exercise library** — searchable list of exercises
 
 ## Database Schema
 
-- `exercises` — exercise library
-- `workouts` — workout templates
-- `scheduled_workouts` — calendar entries
-- `workout_logs` — logged sessions with results
+- `users` — accounts with hashed passwords
+- `exercises` — exercise library (per user + shared)
+- `workouts` — workout templates (per user)
+- `scheduled_workouts` — calendar entries (per user)
+- `workout_logs` — logged sessions with results (per user)
 
 ## Key Commands
 

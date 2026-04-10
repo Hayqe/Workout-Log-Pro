@@ -23,6 +23,7 @@ type Exercise = {
   name: string;
   sets?: number;
   reps?: number;
+  maxReps?: boolean;
   weight?: number;
   reps_per_round?: number;
   distance?: string;
@@ -176,18 +177,34 @@ export default function WorkoutNewPage() {
                   )}
                 </div>
                 {isBodybuilding && (
-                  <div className="grid grid-cols-3 gap-2 pl-6">
-                    <div>
-                      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Sets</Label>
-                      <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} placeholder="4" className="font-mono h-8 mt-1" />
+                  <div className="space-y-2 pl-6">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Sets</Label>
+                        <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} placeholder="4" className="font-mono h-8 mt-1" />
+                      </div>
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {ex.maxReps ? "Min Reps" : "Reps"}
+                        </Label>
+                        <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} placeholder="8" className="font-mono h-8 mt-1" />
+                      </div>
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Weight (kg)</Label>
+                        <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} placeholder="leave empty" className="font-mono h-8 mt-1" />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Reps</Label>
-                      <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} placeholder="8" className="font-mono h-8 mt-1" />
-                    </div>
-                    <div>
-                      <Label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Weight (kg)</Label>
-                      <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} placeholder="80" className="font-mono h-8 mt-1" />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`maxreps-${i}`}
+                        checked={!!ex.maxReps}
+                        onChange={e => updateExercise(i, "maxReps", e.target.checked)}
+                        className="accent-primary h-3.5 w-3.5"
+                      />
+                      <label htmlFor={`maxreps-${i}`} className="font-mono text-[10px] uppercase text-muted-foreground cursor-pointer">
+                        Max reps (last set)
+                      </label>
                     </div>
                   </div>
                 )}

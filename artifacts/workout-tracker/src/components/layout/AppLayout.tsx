@@ -1,8 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Dumbbell, Calendar as CalendarIcon, History, LayoutDashboard } from "lucide-react";
+import { Activity, Dumbbell, Calendar as CalendarIcon, History, LayoutDashboard, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -11,6 +15,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { name: "Calendar", href: "/calendar", icon: CalendarIcon },
     { name: "Log Book", href: "/log", icon: History },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    queryClient.clear();
+  };
+
+  const initials = user?.username?.slice(0, 2).toUpperCase() ?? "??";
 
   return (
     <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background text-foreground selection:bg-primary/30">
@@ -47,14 +58,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-6 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-xs border border-primary/30">
-              ATH
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-xs border border-primary/30 shrink-0">
+                {initials}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold uppercase tracking-tight text-sidebar-foreground truncate">{user?.username}</span>
+                <span className="text-[10px] text-muted-foreground font-mono">Pro Mode</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-tight text-sidebar-foreground">Athlete</span>
-              <span className="text-[10px] text-muted-foreground font-mono">Pro Mode</span>
-            </div>
+            <button
+              onClick={handleLogout}
+              title="Log out"
+              className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </aside>

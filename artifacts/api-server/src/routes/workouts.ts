@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, workoutsTable } from "@workspace/db";
 import {
   CreateWorkoutBody,
@@ -11,39 +11,47 @@ import {
   GetWorkoutResponse,
   UpdateWorkoutResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middleware/requireAuth";
+import { serializeRow, serializeRows } from "../lib/serialize";
 
 const router: IRouter = Router();
 
-router.get("/workouts", async (req, res): Promise<void> => {
-  const workouts = await db.select().from(workoutsTable).orderBy(workoutsTable.createdAt);
-  res.json(ListWorkoutsResponse.parse(workouts));
+router.get("/workouts", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const workouts = await db.select().from(workoutsTable)
+    .where(eq(workoutsTable.userId, userId))
+    .orderBy(workoutsTable.createdAt);
+  res.json(ListWorkoutsResponse.parse(serializeRows(workouts as Record<string, unknown>[])));
 });
 
-router.post("/workouts", async (req, res): Promise<void> => {
+router.post("/workouts", requireAuth, async (req, res): Promise<void> => {
   const parsed = CreateWorkoutBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [workout] = await db.insert(workoutsTable).values(parsed.data).returning();
-  res.status(201).json(GetWorkoutResponse.parse(workout));
+  const userId = req.session.userId!;
+  const [workout] = await db.insert(workoutsTable).values({ ...parsed.data, userId }).returning();
+  res.status(201).json(GetWorkoutResponse.parse(serializeRow(workout as Record<string, unknown>)));
 });
 
-router.get("/workouts/:id", async (req, res): Promise<void> => {
+router.get("/workouts/:id", requireAuth, async (req, res): Promise<void> => {
   const params = GetWorkoutParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [workout] = await db.select().from(workoutsTable).where(eq(workoutsTable.id, params.data.id));
+  const userId = req.session.userId!;
+  const [workout] = await db.select().from(workoutsTable)
+    .where(and(eq(workoutsTable.id, params.data.id), eq(workoutsTable.userId, userId)));
   if (!workout) {
     res.status(404).json({ error: "Workout not found" });
     return;
   }
-  res.json(GetWorkoutResponse.parse(workout));
+  res.json(GetWorkoutResponse.parse(serializeRow(workout as Record<string, unknown>)));
 });
 
-router.patch("/workouts/:id", async (req, res): Promise<void> => {
+router.patch("/workouts/:id", requireAuth, async (req, res): Promise<void> => {
   const params = UpdateWorkoutParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -54,25 +62,29 @@ router.patch("/workouts/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const userId = req.session.userId!;
   const [workout] = await db
     .update(workoutsTable)
     .set(parsed.data)
-    .where(eq(workoutsTable.id, params.data.id))
+    .where(and(eq(workoutsTable.id, params.data.id), eq(workoutsTable.userId, userId)))
     .returning();
   if (!workout) {
     res.status(404).json({ error: "Workout not found" });
     return;
   }
-  res.json(UpdateWorkoutResponse.parse(workout));
+  res.json(UpdateWorkoutResponse.parse(serializeRow(workout as Record<string, unknown>)));
 });
 
-router.delete("/workouts/:id", async (req, res): Promise<void> => {
+router.delete("/workouts/:id", requireAuth, async (req, res): Promise<void> => {
   const params = DeleteWorkoutParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [deleted] = await db.delete(workoutsTable).where(eq(workoutsTable.id, params.data.id)).returning();
+  const userId = req.session.userId!;
+  const [deleted] = await db.delete(workoutsTable)
+    .where(and(eq(workoutsTable.id, params.data.id), eq(workoutsTable.userId, userId)))
+    .returning();
   if (!deleted) {
     res.status(404).json({ error: "Workout not found" });
     return;

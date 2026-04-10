@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull, or } from "drizzle-orm";
 import { db, exercisesTable } from "@workspace/db";
 import {
   CreateExerciseBody,
@@ -8,25 +8,31 @@ import {
   ListExercisesResponse,
   GetExerciseResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middleware/requireAuth";
+import { serializeRow, serializeRows } from "../lib/serialize";
 
 const router: IRouter = Router();
 
-router.get("/exercises", async (req, res): Promise<void> => {
-  const exercises = await db.select().from(exercisesTable).orderBy(exercisesTable.name);
-  res.json(ListExercisesResponse.parse(exercises));
+router.get("/exercises", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const exercises = await db.select().from(exercisesTable)
+    .where(or(isNull(exercisesTable.userId), eq(exercisesTable.userId, userId)))
+    .orderBy(exercisesTable.name);
+  res.json(ListExercisesResponse.parse(serializeRows(exercises as Record<string, unknown>[])));
 });
 
-router.post("/exercises", async (req, res): Promise<void> => {
+router.post("/exercises", requireAuth, async (req, res): Promise<void> => {
   const parsed = CreateExerciseBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [exercise] = await db.insert(exercisesTable).values(parsed.data).returning();
-  res.status(201).json(GetExerciseResponse.parse(exercise));
+  const userId = req.session.userId!;
+  const [exercise] = await db.insert(exercisesTable).values({ ...parsed.data, userId }).returning();
+  res.status(201).json(GetExerciseResponse.parse(serializeRow(exercise as Record<string, unknown>)));
 });
 
-router.get("/exercises/:id", async (req, res): Promise<void> => {
+router.get("/exercises/:id", requireAuth, async (req, res): Promise<void> => {
   const params = GetExerciseParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -37,16 +43,19 @@ router.get("/exercises/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Exercise not found" });
     return;
   }
-  res.json(GetExerciseResponse.parse(exercise));
+  res.json(GetExerciseResponse.parse(serializeRow(exercise as Record<string, unknown>)));
 });
 
-router.delete("/exercises/:id", async (req, res): Promise<void> => {
+router.delete("/exercises/:id", requireAuth, async (req, res): Promise<void> => {
   const params = DeleteExerciseParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [deleted] = await db.delete(exercisesTable).where(eq(exercisesTable.id, params.data.id)).returning();
+  const userId = req.session.userId!;
+  const [deleted] = await db.delete(exercisesTable)
+    .where(and(eq(exercisesTable.id, params.data.id), eq(exercisesTable.userId, userId)))
+    .returning();
   if (!deleted) {
     res.status(404).json({ error: "Exercise not found" });
     return;
