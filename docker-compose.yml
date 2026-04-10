@@ -1,19 +1,24 @@
 services:
-  app:
+  stroxx:
+    container_name: stroxx
     build: .
     restart: unless-stopped
     ports:
-      - "80:8080"
+      - "89:8080"
     environment:
       NODE_ENV: production
       PORT: "8080"
-      DATABASE_URL: postgres://stroxx:stroxx@db:5432/stroxx
+      DATABASE_URL: postgres://stroxx:stroxx@stroxx_db:5432/stroxx
       SESSION_SECRET: ${SESSION_SECRET}
     depends_on:
-      db:
+      stroxx_db:
         condition: service_healthy
+    networks:
+      - proxy
+      - internal
 
-  db:
+  stroxx_db:
+    container_name: stroxx_db
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -21,12 +26,20 @@ services:
       POSTGRES_USER: stroxx
       POSTGRES_PASSWORD: stroxx
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - stroxx_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U stroxx -d stroxx"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - internal
+
+networks:
+  proxy:
+    external: true
+  internal:
+    internal: true
 
 volumes:
-  db_data:
+  stroxx_db_data:
