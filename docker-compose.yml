@@ -14,7 +14,7 @@ services:
       stroxx_db:
         condition: service_healthy
     networks:
-      - proxy
+      - srv_proxy
       - internal
 
   stroxx_db:
@@ -36,7 +36,7 @@ services:
       - internal
 
 networks:
-  proxy:
+  srv_proxy:
     external: true
   internal:
     internal: true
