@@ -214,12 +214,12 @@ export default function WorkoutEditPage() {
                       </div>
                       <div>
                         <Label className="font-mono text-[10px] uppercase text-muted-foreground">Zone</Label>
-                        <Select value={ex.zone || ""} onValueChange={val => updateExercise(i, "zone", val)}>
+                        <Select value={ex.zone || "none"} onValueChange={val => updateExercise(i, "zone", val === "none" ? "" : val)}>
                           <SelectTrigger className="font-mono h-8 mt-1 text-xs">
                             <SelectValue placeholder="—" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="" className="font-mono text-xs">None</SelectItem>
+                            <SelectItem value="none" className="font-mono text-xs">None</SelectItem>
                             {ZONES.map(z => <SelectItem key={z} value={z} className="font-mono text-xs">{z}</SelectItem>)}
                           </SelectContent>
                         </Select>
