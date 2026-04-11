@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, workoutLogsTable } from "@workspace/db";
+import { db, workoutLogsTable, workoutsTable } from "@workspace/db";
 import {
   CreateWorkoutLogBody,
   GetWorkoutLogParams,
@@ -31,7 +31,17 @@ router.post("/workout-logs", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const userId = req.session.userId!;
-  const [row] = await db.insert(workoutLogsTable).values({ ...parsed.data, userId }).returning();
+
+  let sport: string | null = null;
+  if (parsed.data.workoutId) {
+    const [workout] = await db
+      .select({ sport: workoutsTable.sport })
+      .from(workoutsTable)
+      .where(eq(workoutsTable.id, parsed.data.workoutId));
+    sport = workout?.sport ?? null;
+  }
+
+  const [row] = await db.insert(workoutLogsTable).values({ ...parsed.data, sport, userId }).returning();
   res.status(201).json(GetWorkoutLogResponse.parse(serializeRow(row as Record<string, unknown>)));
 });
 

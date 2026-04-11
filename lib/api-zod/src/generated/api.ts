@@ -78,6 +78,7 @@ export const ListWorkoutsResponseItem = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
+  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
   createdAt: zod.string(),
 });
 export const ListWorkoutsResponse = zod.array(ListWorkoutsResponseItem);
@@ -92,6 +93,7 @@ export const CreateWorkoutBody = zod.object({
   duration: zod.number().nullish(),
   rounds: zod.number().nullish(),
   exercises: zod.string(),
+  sport: zod.string().nullish(),
 });
 
 /**
@@ -114,6 +116,7 @@ export const GetWorkoutResponse = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
+  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
   createdAt: zod.string(),
 });
 
@@ -131,6 +134,7 @@ export const UpdateWorkoutBody = zod.object({
   duration: zod.number().nullish(),
   rounds: zod.number().nullish(),
   exercises: zod.string().optional(),
+  sport: zod.string().nullish(),
 });
 
 export const UpdateWorkoutResponse = zod.object({
@@ -146,6 +150,7 @@ export const UpdateWorkoutResponse = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
+  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
   createdAt: zod.string(),
 });
 
@@ -266,6 +271,7 @@ export const ListWorkoutLogsResponseItem = zod.object({
       "JSON string of results (sets\/reps\/weights or time\/distance or rounds completed)",
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
+  sport: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListWorkoutLogsResponse = zod.array(ListWorkoutLogsResponseItem);
@@ -305,6 +311,7 @@ export const GetWorkoutLogResponse = zod.object({
       "JSON string of results (sets\/reps\/weights or time\/distance or rounds completed)",
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
+  sport: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -339,6 +346,7 @@ export const UpdateWorkoutLogResponse = zod.object({
       "JSON string of results (sets\/reps\/weights or time\/distance or rounds completed)",
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
+  sport: zod.string().nullish(),
   createdAt: zod.string(),
 });
 

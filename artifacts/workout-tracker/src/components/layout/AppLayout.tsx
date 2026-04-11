@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Dumbbell, Calendar as CalendarIcon, History, LayoutDashboard, LogOut, User } from "lucide-react";
+import { Activity, Dumbbell, Calendar as CalendarIcon, History, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { SettingsDialog } from "@/components/settings-dialog";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -32,9 +35,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="font-mono font-black text-base tracking-tighter uppercase text-foreground">Stroxx</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-[10px] border border-primary/30">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Instellingen"
+            className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-[10px] border border-primary/30 hover:bg-primary/30 transition-colors"
+          >
             {initials}
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             title="Log out"
@@ -79,15 +86,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="p-6 border-t border-sidebar-border">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Instellingen"
+              className="flex items-center gap-3 min-w-0 flex-1 rounded-md px-1 py-1 hover:bg-sidebar-accent/50 transition-colors text-left"
+            >
               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-xs border border-primary/30 shrink-0">
                 {initials}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-bold uppercase tracking-tight text-sidebar-foreground truncate">{user?.username}</span>
-                <span className="text-[10px] text-muted-foreground font-mono">Pro Mode</span>
+                <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                  <Settings className="h-2.5 w-2.5" />Instellingen
+                </span>
               </div>
-            </div>
+            </button>
             <button
               onClick={handleLogout}
               title="Log out"
@@ -105,6 +118,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

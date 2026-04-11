@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
+import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Plus, ChevronRight, Trash2, Clock, Star, History, Bike, Heart, Mountain, Timer } from "lucide-react";
@@ -186,6 +187,9 @@ export default function LogListPage() {
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="font-bold text-foreground">{log.workoutName}</span>
                         <WorkoutBadge type={log.workoutType} />
+                        {log.workoutType === "cardio" && log.sport && (
+                          <SportTag sport={log.sport} />
+                        )}
                         {log.rating && (
                           <div className="flex items-center gap-0.5">
                             <Star className="h-3 w-3 text-yellow-500 fill-current" />

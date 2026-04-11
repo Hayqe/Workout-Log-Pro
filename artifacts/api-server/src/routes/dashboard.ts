@@ -107,7 +107,7 @@ router.get("/dashboard/weekly-volume", requireAuth, async (req, res): Promise<vo
 
   const result = Object.entries(volumeMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-8)
+    .slice(-5)
     .map(([week, counts]) => ({ week, ...counts }));
 
   res.json(result);

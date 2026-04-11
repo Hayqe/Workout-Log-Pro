@@ -47,6 +47,8 @@ export interface Workout {
   rounds?: number | null;
   /** JSON string of workout exercises/movements */
   exercises: string;
+  /** sport tag for cardio workouts @nullable */
+  sport?: string | null;
   createdAt: string;
 }
 
@@ -60,6 +62,8 @@ export interface CreateWorkoutBody {
   /** @nullable */
   rounds?: number | null;
   exercises: string;
+  /** @nullable */
+  sport?: string | null;
 }
 
 export interface UpdateWorkoutBody {
@@ -72,6 +76,8 @@ export interface UpdateWorkoutBody {
   /** @nullable */
   rounds?: number | null;
   exercises?: string;
+  /** @nullable */
+  sport?: string | null;
 }
 
 export interface ScheduledWorkout {
@@ -131,6 +137,8 @@ export interface WorkoutLog {
    * @nullable
    */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
   createdAt: string;
 }
 

@@ -1,9 +1,10 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useGetWorkoutLog, getGetWorkoutLogQueryKey, useDeleteWorkoutLog, getListWorkoutLogsQueryKey } from "@workspace/api-client-react";
+import { useGetWorkoutLog, getGetWorkoutLogQueryKey, useDeleteWorkoutLog, getListWorkoutLogsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
+import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer } from "lucide-react";
 import { format } from "date-fns";
@@ -18,6 +19,11 @@ export default function LogDetailPage() {
     query: { enabled: !!id, queryKey: getGetWorkoutLogQueryKey(id) }
   });
   const deleteLog = useDeleteWorkoutLog();
+
+  // Must be called unconditionally — before any early returns
+  const { data: linkedWorkout } = useGetWorkout(log?.workoutId ?? 0, {
+    query: { enabled: !!log?.workoutId, queryKey: getGetWorkoutQueryKey(log?.workoutId ?? 0) }
+  });
 
   const handleDelete = async () => {
     if (!confirm("Delete this log entry?")) return;
@@ -37,6 +43,14 @@ export default function LogDetailPage() {
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
 
+  let templateExercises: any[] = [];
+  if (linkedWorkout?.exercises) {
+    try {
+      const parsed = JSON.parse(linkedWorkout.exercises);
+      if (Array.isArray(parsed)) templateExercises = parsed;
+    } catch {}
+  }
+
   const isBb = log.workoutType === "bodybuilding";
   const isCf = ["amrap", "emom", "rft"].includes(log.workoutType);
   const isCardio = log.workoutType === "cardio";
@@ -49,9 +63,12 @@ export default function LogDetailPage() {
             <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
               <h1 className="text-2xl font-mono font-black tracking-tighter uppercase text-foreground">{log.workoutName}</h1>
               <WorkoutBadge type={log.workoutType} />
+              {log.workoutType === "cardio" && log.sport && (
+                <SportTag sport={log.sport} />
+              )}
             </div>
             <p className="text-muted-foreground font-mono text-sm">{format(new Date(log.loggedAt), "EEEE, MMMM d yyyy — HH:mm")}</p>
           </div>
@@ -137,6 +154,29 @@ export default function LogDetailPage() {
                 <p className="text-3xl font-black text-primary">{results.time}</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {isCardio && templateExercises.length > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Trainingsplan</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {templateExercises.map((ex: any, i: number) => (
+              <div key={i} className="flex items-center justify-between py-2 px-3 rounded border border-border bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                  <span className="font-bold text-sm">{ex.name}</span>
+                </div>
+                <div className="font-mono text-[11px] text-muted-foreground flex gap-3">
+                  {ex.distance && <span>{ex.distance} km</span>}
+                  {ex.duration && <span>{ex.duration} min</span>}
+                  {ex.zone && ex.zone !== "none" && <span className="text-primary">{ex.zone}</span>}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
