@@ -18,12 +18,24 @@ import ExerciseDetailPage from "@/pages/exercise-detail";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
+function is401(error: unknown): boolean {
+  return (error as { status?: number })?.status === 401;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        if ((error as { status?: number })?.status === 401) return false;
+        if (is401(error)) return false;
         return failureCount < 2;
+      },
+    },
+    mutations: {
+      onError: (error) => {
+        if (is401(error)) {
+          // Session expired / not logged in — force re-auth check
+          window.location.assign(import.meta.env.BASE_URL);
+        }
       },
     },
   },

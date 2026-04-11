@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExerciseAutocomplete } from "@/components/ui/exercise-autocomplete";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const WORKOUT_TYPES = [
   { value: "bodybuilding", label: "Bodybuilding" },
@@ -38,6 +39,7 @@ export default function WorkoutNewPage() {
   const [, navigate] = useLocation();
   const createWorkout = useCreateWorkout();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [name, setName] = useState("");
   const [type, setType] = useState("bodybuilding");
@@ -63,19 +65,26 @@ export default function WorkoutNewPage() {
       ? JSON.stringify({ freeText: cfDescription })
       : JSON.stringify(exercises.filter(ex => ex.name.trim()));
 
-    await createWorkout.mutateAsync({
-      data: {
-        name,
-        type,
-        description: description || null,
-        duration: duration ? parseInt(duration) : null,
-        rounds: rounds ? parseInt(rounds) : null,
-        exercises: exercisesJson,
-        sport: type === "cardio" && sport !== "none" ? sport : null,
-      }
-    });
-    queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
-    navigate("/workouts");
+    try {
+      await createWorkout.mutateAsync({
+        data: {
+          name,
+          type,
+          description: description || null,
+          duration: duration ? parseInt(duration) : null,
+          rounds: rounds ? parseInt(rounds) : null,
+          exercises: exercisesJson,
+          sport: type === "cardio" && sport !== "none" ? sport : null,
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
+      navigate("/workouts");
+    } catch (err: unknown) {
+      const msg = (err as { data?: { error?: string }; message?: string })?.data?.error
+        ?? (err as { message?: string })?.message
+        ?? "Could not save workout.";
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
+    }
   };
 
   const isBodybuilding = type === "bodybuilding";
