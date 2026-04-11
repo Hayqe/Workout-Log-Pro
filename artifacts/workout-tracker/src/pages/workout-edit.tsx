@@ -201,13 +201,10 @@ export default function WorkoutEditPage() {
 
         {(isBodybuilding || isCardio) && (
           <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
                 {isBodybuilding ? "Movements" : "Activities"}
               </CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1">
-                <Plus className="h-3 w-3" /> Add
-              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {exercises.map((ex, i) => (
@@ -284,6 +281,9 @@ export default function WorkoutEditPage() {
                   )}
                 </div>
               ))}
+              <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1 w-full">
+                <Plus className="h-3 w-3" /> Add movement
+              </Button>
             </CardContent>
           </Card>
         )}
