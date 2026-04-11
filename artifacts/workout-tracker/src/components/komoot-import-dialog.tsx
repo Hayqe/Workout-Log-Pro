@@ -41,16 +41,18 @@ const SPORT_LABELS: Record<string, string> = {
 function sportLabel(sport: string) {
   return SPORT_LABELS[sport] ?? sport;
 }
-// Auto-generated Komoot names follow "{sport} {YYYY-MM-DD HH:MM:SS}" — replace with readable label
+// Auto-generated Komoot names follow "{sport} {YYYY-MM-DD HH:MM:SS}".
+// For those we use just the sport label so all rides of the same type
+// link to the same workout template (= herhalingen).
+// User-defined names are kept as-is.
 function displayName(tour: KomootTour): string {
   const sportKeys = Object.keys(SPORT_LABELS);
   const nameLower = tour.name.toLowerCase();
   const matchedSport = sportKeys.find(k => nameLower.startsWith(k));
   if (matchedSport) {
-    // Check if rest of name is a date pattern
     const rest = tour.name.slice(matchedSport.length).trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(rest)) {
-      return `${sportLabel(matchedSport)} · ${format(parseISO(tour.date), "d MMM yyyy")}`;
+      return sportLabel(matchedSport); // e.g. "Toerfietsen" — all repeats group together
     }
   }
   return tour.name;
@@ -115,13 +117,13 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
       const loggedAt = tour.date.split("T")[0] ?? new Date().toISOString().split("T")[0];
       const body = {
         workoutName: displayName(tour),
-        workoutType: "cardio",
         loggedAt,
         durationMinutes: durationMin,
         notes: `Geïmporteerd via Komoot · ${sportLabel(tour.sport)}`,
         results,
       };
-      const r = await apiFetch("/api/workout-logs", {
+      // Use /api/komoot/import so the server auto-links repeats to the same workout template
+      const r = await apiFetch("/api/komoot/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

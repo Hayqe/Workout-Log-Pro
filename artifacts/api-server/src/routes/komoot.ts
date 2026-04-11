@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, userSettingsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, userSettingsTable, workoutsTable, workoutLogsTable } from "@workspace/db";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { decrypt } from "../lib/encrypt";
 
@@ -129,6 +129,81 @@ router.get("/komoot/tours", requireAuth, async (req, res): Promise<void> => {
   } catch (e: any) {
     if (e.code === "auth_failed") { res.status(401).json({ error: "auth_failed" }); return; }
     res.status(502).json({ error: "komoot_error", message: e.message });
+  }
+});
+
+/* ── POST /komoot/import ── */
+// Imports a single Komoot tour as a cardio workout log.
+// Auto-links to an existing workout template if one with the same name exists,
+// so repeated imports of the same activity are recorded as "herhalingen".
+
+router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const { workoutName, loggedAt, durationMinutes, results, notes } = req.body;
+
+  if (!workoutName || !loggedAt) {
+    res.status(400).json({ error: "workoutName and loggedAt are required" });
+    return;
+  }
+
+  try {
+    // 1. Find an existing cardio workout template with this name (owned by user)
+    let workoutId: number | null = null;
+
+    const [existingWorkout] = await db
+      .select({ id: workoutsTable.id })
+      .from(workoutsTable)
+      .where(and(eq(workoutsTable.userId, userId), eq(workoutsTable.name, workoutName), eq(workoutsTable.type, "cardio")));
+
+    if (existingWorkout) {
+      workoutId = existingWorkout.id;
+    } else {
+      // 2. Check if a previous log with the same name already has a workoutId
+      const [prevLog] = await db
+        .select({ workoutId: workoutLogsTable.workoutId })
+        .from(workoutLogsTable)
+        .where(and(
+          eq(workoutLogsTable.userId, userId),
+          eq(workoutLogsTable.workoutName, workoutName),
+          isNotNull(workoutLogsTable.workoutId),
+        ));
+
+      if (prevLog?.workoutId) {
+        workoutId = prevLog.workoutId;
+      } else {
+        // 3. Create a new cardio workout template so future imports link up
+        const [newWorkout] = await db
+          .insert(workoutsTable)
+          .values({
+            name: workoutName,
+            type: "cardio",
+            description: "Geïmporteerd via Komoot",
+            exercises: "[]",
+            userId,
+          })
+          .returning({ id: workoutsTable.id });
+        workoutId = newWorkout?.id ?? null;
+      }
+    }
+
+    // 4. Insert the workout log linked to the workout template
+    const [log] = await db
+      .insert(workoutLogsTable)
+      .values({
+        workoutId,
+        workoutName,
+        workoutType: "cardio",
+        loggedAt,
+        durationMinutes: durationMinutes ?? null,
+        notes: notes ?? null,
+        results: results ?? "{}",
+        userId,
+      })
+      .returning();
+
+    res.status(201).json(log);
+  } catch (e: any) {
+    res.status(500).json({ error: "Import mislukt", message: e.message });
   }
 });
 
