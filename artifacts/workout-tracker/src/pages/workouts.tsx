@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { KomootImportDialog } from "@/components/komoot-import-dialog";
+import { SettingsDialog } from "@/components/settings-dialog";
 
 function parseExercises(raw: string) {
   try { return JSON.parse(raw); } catch { return null; }
@@ -62,6 +64,8 @@ export default function WorkoutsPage() {
   const deleteWorkout = useDeleteWorkout();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [komootOpen, setKomootOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -95,7 +99,7 @@ export default function WorkoutsPage() {
           <p className="text-muted-foreground font-mono text-sm mt-1">All workout templates</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground">
+          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
             <Download className="h-4 w-4" /> Komoot Import
           </Button>
           <Link href="/workouts/new">
@@ -197,6 +201,13 @@ export default function WorkoutsPage() {
           })}
         </div>
       )}
+
+      <KomootImportDialog
+        open={komootOpen}
+        onOpenChange={setKomootOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
