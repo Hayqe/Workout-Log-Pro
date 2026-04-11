@@ -29,9 +29,9 @@ function fmtTime(s: number) {
 function CountdownToStart({ count }: { count: number }) {
   const isGo = count === 0;
   return (
-    <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center gap-3">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-primary-foreground/70">Starting in…</p>
-      <div className={`font-mono font-black tabular-nums transition-all text-primary-foreground ${isGo ? "text-8xl scale-125" : "text-8xl"}`}>
+    <div className="absolute inset-0 countdown-overlay flex flex-col items-center justify-center gap-3">
+      <p className="font-mono text-[10px] uppercase tracking-widest opacity-60">Starting in…</p>
+      <div className={`font-mono font-black tabular-nums transition-all ${isGo ? "text-8xl scale-125" : "text-8xl"}`}>
         {isGo ? "GO!" : count}
       </div>
     </div>
