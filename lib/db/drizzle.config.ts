@@ -11,4 +11,6 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
+  // Exclude connect-pg-simple's session table — drizzle-kit must not touch it
+  tablesFilter: ["!user_sessions"],
 });
