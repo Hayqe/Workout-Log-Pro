@@ -28,9 +28,9 @@ function fmtTime(s: number) {
 function CountdownToStart({ count }: { count: number }) {
   const isGo = count === 0;
   return (
-    <div className="flex flex-col items-center gap-3 py-6">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Starting in…</p>
-      <div className={`text-8xl font-mono font-black tabular-nums transition-all ${isGo ? "text-green-400 scale-125" : "text-primary"}`}>
+    <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center gap-3">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-primary-foreground/70">Starting in…</p>
+      <div className={`font-mono font-black tabular-nums transition-all text-primary-foreground ${isGo ? "text-8xl scale-125" : "text-8xl"}`}>
         {isGo ? "GO!" : count}
       </div>
     </div>
@@ -59,7 +59,7 @@ function FullscreenTimerOverlay({ onClose, onTap, tapHint, children }: { onClose
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="absolute top-5 right-5 h-11 w-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="absolute top-5 right-5 z-10 h-11 w-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
