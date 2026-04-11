@@ -468,6 +468,15 @@ export default function LogNewPage() {
   const [cardioDuration, setCardioDuration] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
+  const [cardioExercises, setCardioExercises] = useState<any[]>(() => {
+    if (initialTemplate?.type === "cardio") {
+      try {
+        const exs = JSON.parse(initialTemplate.exercises);
+        return Array.isArray(exs) ? exs : [];
+      } catch {}
+    }
+    return [];
+  });
   const [cfText, setCfText] = useState(() => {
     if (initialTemplate && ["amrap", "emom", "rft"].includes(initialTemplate.type)) {
       try {
@@ -507,6 +516,12 @@ export default function LogNewPage() {
         if (parsed?.freeText) setCfText(parsed.freeText);
       } catch {}
     }
+    if (templateFromList.type === "cardio") {
+      try {
+        const exs = JSON.parse(templateFromList.exercises);
+        if (Array.isArray(exs)) setCardioExercises(exs);
+      } catch {}
+    }
   }, [templateFromList]);
 
   /* Fallback 2: fetch by ID for shared workouts owned by another user */
@@ -539,6 +554,12 @@ export default function LogNewPage() {
         if (parsed?.freeText) setCfText(parsed.freeText);
       } catch {}
     }
+    if (fetchedWorkout.type === "cardio") {
+      try {
+        const exs = JSON.parse(fetchedWorkout.exercises);
+        if (Array.isArray(exs)) setCardioExercises(exs);
+      } catch {}
+    }
   }, [fetchedWorkout]);
 
   const handleTemplateSelect = (id: string) => {
@@ -563,6 +584,12 @@ export default function LogNewPage() {
           try {
             const parsed = JSON.parse(w.exercises);
             if (parsed?.freeText) setCfText(parsed.freeText);
+          } catch {}
+        }
+        if (w.type === "cardio") {
+          try {
+            const exs = JSON.parse(w.exercises);
+            if (Array.isArray(exs)) setCardioExercises(exs);
           } catch {}
         }
       }
@@ -816,6 +843,30 @@ export default function LogNewPage() {
                 />
                 <p className="font-mono text-[10px] text-muted-foreground">Record the weight(s) used</p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cardio plan (from template exercises) */}
+        {workoutType === "cardio" && cardioExercises.length > 0 && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Trainingsplan</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1.5">
+              {cardioExercises.map((ex: any, i: number) => (
+                <div key={i} className="flex items-center justify-between py-2 px-3 rounded border border-border bg-muted/20">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-[11px] text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                    <span className="font-bold text-sm">{ex.name}</span>
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground flex gap-3">
+                    {ex.distance && <span>{ex.distance} km</span>}
+                    {ex.duration && <span>{ex.duration} min</span>}
+                    {ex.zone && ex.zone !== "none" && <span className="text-primary">{ex.zone}</span>}
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

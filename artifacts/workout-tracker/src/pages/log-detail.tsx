@@ -1,5 +1,5 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useGetWorkoutLog, getGetWorkoutLogQueryKey, useDeleteWorkoutLog, getListWorkoutLogsQueryKey } from "@workspace/api-client-react";
+import { useGetWorkoutLog, getGetWorkoutLogQueryKey, useDeleteWorkoutLog, getListWorkoutLogsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,20 @@ export default function LogDetailPage() {
     </div>
   );
 
+  const { data: linkedWorkout } = useGetWorkout(log.workoutId ?? 0, {
+    query: { enabled: !!log.workoutId, queryKey: getGetWorkoutQueryKey(log.workoutId ?? 0) }
+  });
+
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
+
+  let templateExercises: any[] = [];
+  if (linkedWorkout?.exercises) {
+    try {
+      const parsed = JSON.parse(linkedWorkout.exercises);
+      if (Array.isArray(parsed)) templateExercises = parsed;
+    } catch {}
+  }
 
   const isBb = log.workoutType === "bodybuilding";
   const isCf = ["amrap", "emom", "rft"].includes(log.workoutType);
@@ -141,6 +153,29 @@ export default function LogDetailPage() {
                 <p className="text-3xl font-black text-primary">{results.time}</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {isCardio && templateExercises.length > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Trainingsplan</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {templateExercises.map((ex: any, i: number) => (
+              <div key={i} className="flex items-center justify-between py-2 px-3 rounded border border-border bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                  <span className="font-bold text-sm">{ex.name}</span>
+                </div>
+                <div className="font-mono text-[11px] text-muted-foreground flex gap-3">
+                  {ex.distance && <span>{ex.distance} km</span>}
+                  {ex.duration && <span>{ex.duration} min</span>}
+                  {ex.zone && ex.zone !== "none" && <span className="text-primary">{ex.zone}</span>}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
