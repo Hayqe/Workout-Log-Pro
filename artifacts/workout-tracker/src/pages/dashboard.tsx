@@ -50,7 +50,7 @@ export default function Dashboard() {
       </div>
 
       {/* Log Workout — full-width narrow action bar */}
-      <Link href="/log/new">
+      <Link href="/log/new" className="block my-4">
         <div className="flex items-center justify-between px-5 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
             <Plus className="h-4 w-4 shrink-0" />
