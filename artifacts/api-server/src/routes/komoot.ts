@@ -26,13 +26,16 @@ interface KomootAccount {
 interface KomootTour {
   id: string | number;
   name: string;
-  date: string;
-  sport: string;
+  // Komoot uses different date field names depending on API version
+  date?: string;
+  recordedAt?: string;
+  createdAt?: string;
+  changedAt?: string;
+  sport?: string;
   distance: number;  // metres
   duration: number;  // seconds
   elevation_up?: number;
-  elevation_down?: number;
-  changed_at?: string;
+  elevationUp?: number;
 }
 
 async function authKomoot(email: string, password: string): Promise<KomootAccount> {
@@ -90,18 +93,36 @@ router.get("/komoot/tours", requireAuth, async (req, res): Promise<void> => {
     const rawTours = filtered.length > 0 ? filtered : allTours;
     console.log("[komoot] after filter:", rawTours.length, "(filter had:", filtered.length, ")");
 
+    // Known sport keywords that appear in auto-generated Komoot tour names
+    const SPORT_KEYWORDS = [
+      "touringbicycle","racebike","mtb","e_mtb","e_touringbicycle","cycling",
+      "running","jogging","hiking","hike","mountaineering","nordic_walking","skating","swimming",
+    ];
+    function extractSport(t: any): string {
+      if (t.sport) return String(t.sport);
+      const nameLower = (t.name ?? "").toLowerCase();
+      return SPORT_KEYWORDS.find(k => nameLower.startsWith(k)) ?? "other";
+    }
+    function toIsoDate(raw: string | undefined): string {
+      if (!raw) return new Date().toISOString();
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+    }
+
     const tours = rawTours
-      .map(t => ({
-        id: String(t.id),
-        name: t.name,
-        date: t.date,
-        sport: t.sport,
-        distanceM: t.distance ?? 0,
-        durationS: t.duration ?? 0,
-        elevationUp: t.elevation_up ?? 0,
-        elevationDown: t.elevation_down ?? 0,
-      }))
-      // Sort by date descending (newest first) on our side
+      .map((t: any) => {
+        const dateRaw = t.recordedAt ?? t.date ?? t.changedAt ?? t.createdAt;
+        return {
+          id: String(t.id),
+          name: t.name ?? `Route ${t.id}`,
+          date: toIsoDate(dateRaw),
+          sport: extractSport(t),
+          distanceM: t.distance ?? 0,
+          durationS: t.duration ?? 0,
+          elevationUp: t.elevation_up ?? t.elevationUp ?? 0,
+          elevationDown: t.elevation_down ?? t.elevationDown ?? 0,
+        };
+      })
       .sort((a, b) => b.date.localeCompare(a.date));
 
     res.json({ tours, komootUsername: account.username });

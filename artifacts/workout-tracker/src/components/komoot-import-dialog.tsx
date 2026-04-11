@@ -31,15 +31,29 @@ function fmtDuration(s: number) {
   const m = Math.floor((s % 3600) / 60);
   return h > 0 ? `${h}u ${m}m` : `${m}m`;
 }
+const SPORT_LABELS: Record<string, string> = {
+  cycling: "Fietsen", touringbicycle: "Toerfietsen", mtb: "MTB", mtb_easy: "MTB",
+  mtb_advanced: "MTB", racebike: "Racefiets", e_mtb: "E-MTB", e_touringbicycle: "E-Bike",
+  running: "Hardlopen", jogging: "Hardlopen", hiking: "Wandelen", hike: "Wandelen",
+  mountaineering: "Bergwandelen", nordic_walking: "Nordic Walking", skating: "Skeeleren",
+  swimming: "Zwemmen", other: "Anders",
+};
 function sportLabel(sport: string) {
-  const map: Record<string, string> = {
-    cycling: "Fietsen", touringbicycle: "Toerfietsen", mtb: "MTB", mtb_easy: "MTB",
-    mtb_advanced: "MTB", racebike: "Racefiets", e_mtb: "E-MTB", e_touringbicycle: "E-Bike",
-    running: "Hardlopen", jogging: "Hardlopen", hiking: "Wandelen", hike: "Wandelen",
-    mountaineering: "Bergwandelen", nordic_walking: "Nordic Walking", skating: "Skeeleren",
-    swimming: "Zwemmen", other: "Anders",
-  };
-  return map[sport] ?? sport;
+  return SPORT_LABELS[sport] ?? sport;
+}
+// Auto-generated Komoot names follow "{sport} {YYYY-MM-DD HH:MM:SS}" — replace with readable label
+function displayName(tour: KomootTour): string {
+  const sportKeys = Object.keys(SPORT_LABELS);
+  const nameLower = tour.name.toLowerCase();
+  const matchedSport = sportKeys.find(k => nameLower.startsWith(k));
+  if (matchedSport) {
+    // Check if rest of name is a date pattern
+    const rest = tour.name.slice(matchedSport.length).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(rest)) {
+      return `${sportLabel(matchedSport)} · ${format(parseISO(tour.date), "d MMM yyyy")}`;
+    }
+  }
+  return tour.name;
 }
 function SportIcon({ sport }: { sport: string }) {
   if (sport.includes("cycl") || sport.includes("bike") || sport.includes("mtb")) return <Bike className="h-4 w-4" />;
@@ -100,7 +114,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
       });
       const loggedAt = tour.date.split("T")[0] ?? new Date().toISOString().split("T")[0];
       const body = {
-        workoutName: tour.name,
+        workoutName: displayName(tour),
         workoutType: "cardio",
         loggedAt,
         durationMinutes: durationMin,
@@ -197,7 +211,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
                       <SportIcon sport={tour.sport} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono text-sm font-bold truncate">{tour.name}</p>
+                      <p className="font-mono text-sm font-bold truncate">{displayName(tour)}</p>
                       <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
                         {format(parseISO(tour.date), "d MMM yyyy")}
                         <span className="mx-1.5 opacity-40">·</span>
