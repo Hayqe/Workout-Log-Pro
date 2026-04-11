@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [newWorkoutId, setNewWorkoutId] = useState<string>("");
   const [newNotes, setNewNotes] = useState("");
   const [newIsPublic, setNewIsPublic] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -87,6 +88,7 @@ export default function CalendarPage() {
   const handleDayClick = (day: Date) => {
     setSelectedDate(day);
     setDialogOpen(true);
+    setAddOpen(false);
     setNewWorkoutName("");
     setNewWorkoutType("bodybuilding");
     setNewWorkoutId("");
@@ -291,8 +293,17 @@ export default function CalendarPage() {
               </div>
             )}
 
-            <div className="space-y-3 pt-2 border-t border-border">
-              <p className="font-mono text-xs uppercase text-muted-foreground">Add workout</p>
+            <div className="pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setAddOpen(o => !o)}
+                className="w-full flex items-center justify-between py-1 font-mono text-xs uppercase text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span>Plan workout</span>
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-200 ${addOpen ? "rotate-90" : ""}`} />
+              </button>
+              {addOpen && (
+              <div className="space-y-3 mt-3">
               <div className="space-y-2">
                 <Label className="font-mono text-xs uppercase">From template</Label>
                 <Select value={newWorkoutId} onValueChange={handleWorkoutSelect}>
@@ -348,6 +359,8 @@ export default function CalendarPage() {
               >
                 <Plus className="h-4 w-4" /> Schedule
               </Button>
+              </div>
+              )}
             </div>
           </div>
         </DialogContent>
