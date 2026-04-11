@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   useListScheduledWorkouts, getListScheduledWorkoutsQueryKey,
-  useCreateScheduledWorkout, useUpdateScheduledWorkout, useDeleteScheduledWorkout,
+  useCreateScheduledWorkout, useDeleteScheduledWorkout,
   useListWorkouts, getListWorkoutsQueryKey,
   useListWorkoutLogs, getListWorkoutLogsQueryKey,
 } from "@workspace/api-client-react";
@@ -14,9 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, Globe, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Globe, Lock, Check } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isToday } from "date-fns";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
@@ -48,12 +48,12 @@ export default function CalendarPage() {
   const [newIsPublic, setNewIsPublic] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   const { data: scheduled } = useListScheduledWorkouts(undefined, { query: { queryKey: getListScheduledWorkoutsQueryKey({}) } });
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
   const createScheduled = useCreateScheduledWorkout();
-  const updateScheduled = useUpdateScheduledWorkout();
   const deleteScheduled = useDeleteScheduledWorkout();
 
   const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
@@ -64,11 +64,11 @@ export default function CalendarPage() {
       try { return isSameDay(parseISO(s.scheduledDate), day); } catch { return false; }
     });
 
-  const hasUserLogged = (workoutId: number | null | undefined, dateStr: string): boolean => {
-    if (!workoutId) return false;
-    return (allLogs || []).some((log: any) =>
+  const getUserLog = (workoutId: number | null | undefined, dateStr: string) => {
+    if (!workoutId) return null;
+    return (allLogs || []).find((log: any) =>
       log.workoutId === workoutId && (log.loggedAt || "").split("T")[0] === dateStr
-    );
+    ) ?? null;
   };
 
   const getAdHocLogsForDay = (day: Date) => {
@@ -122,14 +122,15 @@ export default function CalendarPage() {
     setNewWorkoutId("");
   };
 
-  const handleToggleDone = async (id: number, completed: boolean) => {
-    await updateScheduled.mutateAsync({ id, data: { completed: !completed } });
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    await deleteScheduled.mutateAsync({ id });
     queryClient.invalidateQueries({ queryKey: getListScheduledWorkoutsQueryKey({}) });
   };
 
-  const handleDelete = async (id: number) => {
-    await deleteScheduled.mutateAsync({ id });
-    queryClient.invalidateQueries({ queryKey: getListScheduledWorkoutsQueryKey({}) });
+  const handleRowClick = (href: string) => {
+    setDialogOpen(false);
+    navigate(href);
   };
 
   const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
@@ -176,7 +177,7 @@ export default function CalendarPage() {
                   {hasWorkout && (
                     <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
                       {dayScheduled.slice(0, 2).map(s => {
-                        const logged = hasUserLogged(s.workoutId, dayStr);
+                        const logged = !!getUserLog(s.workoutId, dayStr);
                         return <WorkoutTypeChip key={s.id} type={s.workoutType} done={logged} />;
                       })}
                       {adHocLogs.slice(0, 2).map((log: any) => (
@@ -207,43 +208,55 @@ export default function CalendarPage() {
                 {selectedDayScheduled.map(s => {
                   const own = isOwn(s);
                   const pub = (s as any).isPublic;
-                  const logged = hasUserLogged(s.workoutId, selectedDateStr);
+                  const log = getUserLog(s.workoutId, selectedDateStr);
+                  const logged = !!log;
+                  const rowHref = logged
+                    ? `/log/${(log as any).id}`
+                    : s.workoutId
+                      ? `/log/new?workoutId=${s.workoutId}`
+                      : null;
+
                   return (
-                    <div key={s.id} className={`flex items-center justify-between p-3 rounded border ${logged ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}`}>
+                    <div
+                      key={s.id}
+                      onClick={() => rowHref && handleRowClick(rowHref)}
+                      className={`flex items-center justify-between p-3 rounded border transition-all
+                        ${rowHref ? "cursor-pointer hover:bg-muted/40" : ""}
+                        ${logged ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}
+                      `}
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-bold text-sm ${logged ? "text-muted-foreground" : ""}`}>{s.workoutName}</span>
                           <WorkoutBadge type={s.workoutType} />
-                          {!own && (
-                            <span className="text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
-                              {pub ? <span className="flex items-center gap-1"><Globe className="h-2.5 w-2.5" /> Public</span> : "other"}
+                          {!own && pub && (
+                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
+                              <Globe className="h-2.5 w-2.5" /> Public
                             </span>
                           )}
                           {logged && (
                             <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
-                              <Check className="h-2.5 w-2.5" /> Logged
+                              <Check className="h-2.5 w-2.5" /> Done
                             </span>
                           )}
                         </div>
                         {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
                       </div>
-                      <div className="flex gap-1 shrink-0 ml-2">
+                      <div className="flex gap-1 shrink-0 ml-2" onClick={e => e.stopPropagation()}>
                         {own && (
-                          <>
-                            <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(s.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => handleDelete(e, s.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         )}
-                        {!logged && s.workoutId && (
-                          <Link href={`/log/new?workoutId=${s.workoutId}`}>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
-                              Log
-                            </Button>
-                          </Link>
+                        {rowHref && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-7 px-2 font-mono text-[10px] uppercase ${logged ? "text-muted-foreground" : "text-primary"}`}
+                            onClick={() => handleRowClick(rowHref)}
+                          >
+                            {logged ? "View" : "Log"}
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -251,21 +264,28 @@ export default function CalendarPage() {
                 })}
 
                 {selectedAdHocLogs.map((log: any) => (
-                  <div key={log.id} className="flex items-center justify-between p-3 rounded border border-green-500/30 bg-green-500/5">
+                  <div
+                    key={log.id}
+                    onClick={() => handleRowClick(`/log/${log.id}`)}
+                    className="flex items-center justify-between p-3 rounded border border-green-500/30 bg-green-500/5 cursor-pointer hover:bg-green-500/10 transition-all"
+                  >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-muted-foreground">{log.workoutName || "Workout"}</span>
                         {log.workoutType && <WorkoutBadge type={log.workoutType} />}
                         <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
-                          <Check className="h-2.5 w-2.5" /> Logged
+                          <Check className="h-2.5 w-2.5" /> Done
                         </span>
                       </div>
                     </div>
-                    <Link href={`/log/${log.id}`}>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-muted-foreground">
-                        View
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 font-mono text-[10px] uppercase text-muted-foreground"
+                      onClick={() => handleRowClick(`/log/${log.id}`)}
+                    >
+                      View
+                    </Button>
                   </div>
                 ))}
               </div>
