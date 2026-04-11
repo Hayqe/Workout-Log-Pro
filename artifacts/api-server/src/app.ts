@@ -4,8 +4,11 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
+
+const PgSession = connectPgSimple(session);
 
 const app: Express = express();
 
@@ -38,6 +41,12 @@ if (!sessionSecret) {
 }
 
 app.use(session({
+  store: new PgSession({
+    conString: process.env["DATABASE_URL"],
+    createTableIfMissing: true,
+    tableName: "user_sessions",
+    pruneSessionInterval: 60 * 60, // prune expired sessions every hour
+  }),
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
