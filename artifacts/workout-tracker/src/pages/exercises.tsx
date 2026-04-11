@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useListExercises, getListExercisesQueryKey, useCreateExercise, useDeleteExercise, useListWorkoutLogs, getListWorkoutLogsQueryKey } from "@workspace/api-client-react";
+import { useListExercises, getListExercisesQueryKey, useCreateExercise, useDeleteExercise, useListWorkoutLogs, getListWorkoutLogsQueryKey, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { Trash2, Plus, Dumbbell, Search, TrendingUp, ChevronRight } from "lucide-react";
+import { Trash2, Plus, Dumbbell, Search, TrendingUp, ChevronRight, Lock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -125,9 +125,25 @@ function ExerciseProgress({ exercise, logs }: { exercise: any; logs: any[] | und
 export default function ExercisesPage() {
   const { data: exercises, isLoading } = useListExercises({ query: { queryKey: getListExercisesQueryKey() } });
   const { data: logs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
+  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const createExercise = useCreateExercise();
   const deleteExercise = useDeleteExercise();
   const queryClient = useQueryClient();
+
+  const usedExerciseNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const w of workouts ?? []) {
+      try {
+        const parsed = JSON.parse(w.exercises);
+        if (Array.isArray(parsed)) {
+          for (const ex of parsed) {
+            if (typeof ex.name === "string") names.add(ex.name.toLowerCase());
+          }
+        }
+      } catch {}
+    }
+    return names;
+  }, [workouts]);
 
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -158,9 +174,14 @@ export default function ExercisesPage() {
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
     if (!confirm("Remove this exercise?")) return;
-    await deleteExercise.mutateAsync({ id });
-    queryClient.invalidateQueries({ queryKey: getListExercisesQueryKey() });
-    if (expandedId === id) setExpandedId(null);
+    try {
+      await deleteExercise.mutateAsync({ id });
+      queryClient.invalidateQueries({ queryKey: getListExercisesQueryKey() });
+      if (expandedId === id) setExpandedId(null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "Could not delete exercise.";
+      alert(msg);
+    }
   };
 
   const toggleExpand = (id: number) => setExpandedId(prev => prev === id ? null : id);
@@ -236,6 +257,7 @@ export default function ExercisesPage() {
         <div className="space-y-2">
           {filtered.map((ex) => {
             const isOpen = expandedId === ex.id;
+            const isUsed = usedExerciseNames.has(ex.name.toLowerCase());
             return (
               <Card key={ex.id} className={`bg-card border-border transition-all ${isOpen ? "border-primary/40" : "hover:border-primary/20"}`}>
                 <div
@@ -254,15 +276,21 @@ export default function ExercisesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={(e) => handleDelete(e, ex.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isUsed ? (
+                        <div title="Used in a workout template — cannot be deleted" className="h-8 w-8 flex items-center justify-center text-muted-foreground/50">
+                          <Lock className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={(e) => handleDelete(e, ex.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
                     </div>
                   </CardContent>

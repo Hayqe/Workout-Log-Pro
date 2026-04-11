@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, or } from "drizzle-orm";
-import { db, exercisesTable } from "@workspace/db";
+import { db, exercisesTable, workoutsTable } from "@workspace/db";
 import {
   CreateExerciseBody,
   GetExerciseParams,
@@ -53,13 +53,32 @@ router.delete("/exercises/:id", requireAuth, async (req, res): Promise<void> => 
     return;
   }
   const userId = req.session.userId!;
-  const [deleted] = await db.delete(exercisesTable)
-    .where(and(eq(exercisesTable.id, params.data.id), eq(exercisesTable.userId, userId)))
-    .returning();
-  if (!deleted) {
+
+  const [exercise] = await db.select().from(exercisesTable)
+    .where(and(eq(exercisesTable.id, params.data.id), eq(exercisesTable.userId, userId)));
+  if (!exercise) {
     res.status(404).json({ error: "Exercise not found" });
     return;
   }
+
+  const allWorkouts = await db.select({ exercises: workoutsTable.exercises }).from(workoutsTable);
+  const nameLower = exercise.name.toLowerCase();
+  const usedInWorkout = allWorkouts.some((w) => {
+    try {
+      const parsed = JSON.parse(w.exercises);
+      if (Array.isArray(parsed)) {
+        return parsed.some((ex: any) => typeof ex.name === "string" && ex.name.toLowerCase() === nameLower);
+      }
+    } catch {}
+    return false;
+  });
+  if (usedInWorkout) {
+    res.status(409).json({ error: `"${exercise.name}" is used in one or more workout templates and cannot be deleted.` });
+    return;
+  }
+
+  await db.delete(exercisesTable)
+    .where(and(eq(exercisesTable.id, params.data.id), eq(exercisesTable.userId, userId)));
   res.sendStatus(204);
 });
 
