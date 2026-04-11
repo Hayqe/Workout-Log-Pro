@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link, useSearch } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { RestTimer } from "@/components/ui/rest-timer";
 import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -606,23 +607,32 @@ export default function LogNewPage() {
     return "{}";
   };
 
+  const { toast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workoutName) return;
-    await createLog.mutateAsync({
-      data: {
-        workoutId: selectedTemplateId ? parseInt(selectedTemplateId) : null,
-        workoutName,
-        workoutType,
-        loggedAt: new Date(loggedAt).toISOString(),
-        durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
-        notes: notes || null,
-        results: buildResults(),
-        rating,
-      }
-    });
-    queryClient.invalidateQueries({ queryKey: getListWorkoutLogsQueryKey() });
-    navigate("/log");
+    try {
+      await createLog.mutateAsync({
+        data: {
+          workoutId: selectedTemplateId ? parseInt(selectedTemplateId) : null,
+          workoutName,
+          workoutType,
+          loggedAt: new Date(loggedAt).toISOString(),
+          durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
+          notes: notes || null,
+          results: buildResults(),
+          rating,
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: getListWorkoutLogsQueryKey() });
+      navigate("/log");
+    } catch (err: unknown) {
+      const msg = (err as { data?: { error?: string }; message?: string })?.data?.error
+        ?? (err as { message?: string })?.message
+        ?? "Could not save log.";
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
+    }
   };
 
   const isCrossfit = ["amrap", "emom", "rft"].includes(workoutType);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { useGetWorkout, getGetWorkoutQueryKey, useUpdateWorkout, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export default function WorkoutEditPage() {
   const id = parseInt(params?.id || "0");
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: workout, isLoading } = useGetWorkout(id, { query: { enabled: !!id, queryKey: getGetWorkoutQueryKey(id) } });
   const updateWorkout = useUpdateWorkout();
@@ -72,21 +74,28 @@ export default function WorkoutEditPage() {
       ? JSON.stringify({ freeText: cfDescription })
       : JSON.stringify(exercises.filter(ex => ex.name?.trim()));
 
-    await updateWorkout.mutateAsync({
-      id,
-      data: {
-        name,
-        type,
-        description: description || null,
-        duration: duration ? parseInt(duration) : null,
-        rounds: rounds ? parseInt(rounds) : null,
-        exercises: exercisesJson,
-        sport: type === "cardio" && sport !== "none" ? sport : null,
-      }
-    });
-    queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
-    queryClient.invalidateQueries({ queryKey: getGetWorkoutQueryKey(id) });
-    navigate(`/workouts/${id}`);
+    try {
+      await updateWorkout.mutateAsync({
+        id,
+        data: {
+          name,
+          type,
+          description: description || null,
+          duration: duration ? parseInt(duration) : null,
+          rounds: rounds ? parseInt(rounds) : null,
+          exercises: exercisesJson,
+          sport: type === "cardio" && sport !== "none" ? sport : null,
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetWorkoutQueryKey(id) });
+      navigate(`/workouts/${id}`);
+    } catch (err: unknown) {
+      const msg = (err as { data?: { error?: string }; message?: string })?.data?.error
+        ?? (err as { message?: string })?.message
+        ?? "Could not save workout.";
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
+    }
   };
 
   if (isLoading) return <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>;
