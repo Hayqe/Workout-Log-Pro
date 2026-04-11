@@ -39,12 +39,16 @@ function CountdownToStart({ count }: { count: number }) {
 
 /* ─── Fullscreen timer overlay with Wake Lock ─── */
 function FullscreenTimerOverlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const lockRef = useRef<any>(null);
+
   useEffect(() => {
-    const ctrl: { lock?: any } = {};
     (async () => {
-      try { ctrl.lock = await (navigator as any).wakeLock?.request("screen"); } catch {}
+      try { lockRef.current = await (navigator as any).wakeLock?.request("screen"); } catch {}
     })();
-    return () => { ctrl.lock?.release?.().catch?.(() => {}); };
+    return () => {
+      lockRef.current?.release?.().catch?.(() => {});
+      lockRef.current = null;
+    };
   }, []);
 
   return (
@@ -109,7 +113,11 @@ function StopwatchTracker({
     setSaved(false);
   };
 
-  if (countdown !== null) return <CountdownToStart count={countdown} />;
+  if (countdown !== null) return (
+    <FullscreenTimerOverlay onClose={() => setCountdown(null)}>
+      <CountdownToStart count={countdown} />
+    </FullscreenTimerOverlay>
+  );
 
   const timerBody = (fs: boolean) => (
     <div className={`flex flex-col items-center gap-6 ${fs ? "w-full px-8" : "py-2"}`}>
@@ -233,7 +241,11 @@ function EmomTimer() {
     setCurrentInterval(1);
   };
 
-  if (countdown !== null) return <CountdownToStart count={countdown} />;
+  if (countdown !== null) return (
+    <FullscreenTimerOverlay onClose={() => setCountdown(null)}>
+      <CountdownToStart count={countdown} />
+    </FullscreenTimerOverlay>
+  );
 
   const timerBody = (fs: boolean) => (
     <div className={`flex flex-col items-center gap-5 ${fs ? "w-full px-8" : "py-2"}`}>
