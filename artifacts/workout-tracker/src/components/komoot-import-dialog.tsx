@@ -108,6 +108,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
         durationMinutes: durationMin,
         notes: `Geïmporteerd via Komoot · ${sportLabel(tour.sport)}`,
         results,
+        sport: tour.sport,
       };
       // Use /api/komoot/import so the server auto-links repeats to the same workout template
       const r = await apiFetch("/api/komoot/import", {

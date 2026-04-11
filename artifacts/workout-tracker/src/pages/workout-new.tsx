@@ -44,6 +44,7 @@ export default function WorkoutNewPage() {
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("");
   const [rounds, setRounds] = useState("");
+  const [sport, setSport] = useState("none");
   const [exercises, setExercises] = useState<Exercise[]>([{ name: "" }]);
   const [cfDescription, setCfDescription] = useState("");
 
@@ -70,6 +71,7 @@ export default function WorkoutNewPage() {
         duration: duration ? parseInt(duration) : null,
         rounds: rounds ? parseInt(rounds) : null,
         exercises: exercisesJson,
+        sport: type === "cardio" && sport !== "none" ? sport : null,
       }
     });
     queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
@@ -123,6 +125,29 @@ export default function WorkoutNewPage() {
                 </SelectContent>
               </Select>
             </div>
+            {isCardio && (
+              <div className="space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider">Sport</Label>
+                <Select value={sport} onValueChange={setSport}>
+                  <SelectTrigger className="font-mono">
+                    <SelectValue placeholder="Selecteer sport..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="font-mono">— Geen —</SelectItem>
+                    <SelectItem value="touringbicycle" className="font-mono">Toerfiets</SelectItem>
+                    <SelectItem value="racebike" className="font-mono">Racefiets</SelectItem>
+                    <SelectItem value="mtb" className="font-mono">MTB</SelectItem>
+                    <SelectItem value="e_touringbicycle" className="font-mono">E-Bike</SelectItem>
+                    <SelectItem value="e_mtb" className="font-mono">E-MTB</SelectItem>
+                    <SelectItem value="running" className="font-mono">Hardlopen</SelectItem>
+                    <SelectItem value="hiking" className="font-mono">Wandelen</SelectItem>
+                    <SelectItem value="swimming" className="font-mono">Zwemmen</SelectItem>
+                    <SelectItem value="rowing" className="font-mono">Roeien</SelectItem>
+                    <SelectItem value="other" className="font-mono">Anders</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="font-mono text-xs uppercase tracking-wider">Description (optional)</Label>
               <Textarea

@@ -139,7 +139,7 @@ router.get("/komoot/tours", requireAuth, async (req, res): Promise<void> => {
 
 router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session.userId!;
-  const { workoutName, loggedAt, durationMinutes, results, notes } = req.body;
+  const { workoutName, loggedAt, durationMinutes, results, notes, sport } = req.body;
 
   if (!workoutName || !loggedAt) {
     res.status(400).json({ error: "workoutName and loggedAt are required" });
@@ -179,6 +179,7 @@ router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
             type: "cardio",
             description: "Geïmporteerd via Komoot",
             exercises: "[]",
+            sport: sport ?? null,
             userId,
           })
           .returning({ id: workoutsTable.id });
