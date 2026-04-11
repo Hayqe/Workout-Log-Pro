@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { nl } from "date-fns/locale";
 import { useAuth } from "@/contexts/auth-context";
@@ -33,10 +33,12 @@ function CardioResultSummary({ results }: { results: Record<string, any> }) {
   const elev = results.elevationGain != null && results.elevationGain > 0
     ? `↑${Math.round(results.elevationGain)}m`
     : null;
+  const hr = results.avgHeartRate != null ? `${Math.round(results.avgHeartRate)} bpm` : null;
   return (
     <span className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
       {dist && <span className="flex items-center gap-1"><Bike className="h-3 w-3" />{dist}</span>}
       {elev && <span className="flex items-center gap-1"><Mountain className="h-3 w-3" />{elev}</span>}
+      {hr && <span className="flex items-center gap-1 text-red-400/80"><Heart className="h-3 w-3" />{hr}</span>}
     </span>
   );
 }
