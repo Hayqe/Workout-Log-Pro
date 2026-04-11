@@ -65,20 +65,22 @@ router.get("/komoot/tours", requireAuth, async (req, res): Promise<void> => {
     console.log("[komoot] tours status:", toursRes.status);
     if (!toursRes.ok) throw new Error(`Komoot tours request failed: ${toursRes.status}`);
 
-    const body = await toursRes.json() as Record<string, any>;
-    console.log("[komoot] response top-level keys:", Object.keys(body));
-    if (body._embedded) console.log("[komoot] _embedded keys:", Object.keys(body._embedded));
-    if (body.page) console.log("[komoot] page:", JSON.stringify(body.page));
+    const body = await toursRes.json() as any;
 
-    // Try all possible HAL embedded key variants
-    const embeddedKeys = body._embedded ? Object.keys(body._embedded) : [];
-    const allTours: KomootTour[] = (
-      body._embedded?.tours ??
-      (embeddedKeys.length === 1 ? body._embedded[embeddedKeys[0]] : undefined) ??
-      body.tours ??
-      []
-    );
-    console.log("[komoot] allTours count:", allTours.length);
+    // Komoot may return a direct array, a HAL {_embedded:{tours:[]}}, or {tours:[]}
+    let allTours: KomootTour[];
+    if (Array.isArray(body)) {
+      // Direct array response
+      allTours = body;
+    } else if (body?._embedded) {
+      const embeddedKeys = Object.keys(body._embedded);
+      allTours = body._embedded.tours ?? (embeddedKeys.length === 1 ? body._embedded[embeddedKeys[0]] : []) ?? [];
+    } else if (Array.isArray(body?.tours)) {
+      allTours = body.tours;
+    } else {
+      allTours = [];
+    }
+    console.log("[komoot] allTours count:", allTours.length, "| isArray:", Array.isArray(body));
     if (allTours[0]) console.log("[komoot] first tour sample:", JSON.stringify(allTours[0]).slice(0, 400));
 
     // Keep only recorded tours; fall back to all tours if filter yields nothing
