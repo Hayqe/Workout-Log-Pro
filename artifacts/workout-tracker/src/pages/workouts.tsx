@@ -190,7 +190,7 @@ function ExerciseList({ type, raw }: { type: string; raw: string }) {
             {ex.reps && <span>{ex.reps} reps</span>}
             {ex.weight > 0 && <span>{ex.weight} kg</span>}
             {ex.reps_per_round && <span>{ex.reps_per_round} reps/rd</span>}
-            {ex.distance && <span>{ex.distance}</span>}
+            {ex.distance && <span>{ex.distance}{type === "cardio" ? " km" : ""}</span>}
             {ex.duration && <span>{ex.duration} min</span>}
             {ex.zone && ex.zone !== "none" && <span className="text-primary">{ex.zone}</span>}
           </div>

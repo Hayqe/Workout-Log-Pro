@@ -132,6 +132,30 @@ router.get("/komoot/tours", requireAuth, async (req, res): Promise<void> => {
   }
 });
 
+/* ── helpers ── */
+const SPORT_EXERCISE_NAME: Record<string, string> = {
+  cycling: "Cycling",
+  bike: "Cycling",
+  mtb: "MTB",
+  running: "Running",
+  hike: "Hiking",
+  hiking: "Hiking",
+  swimming: "Swimming",
+  walking: "Walking",
+  e_bike: "E-bike",
+  jogging: "Running",
+  other: "Cardio",
+};
+
+function derivedExercises(sport: string | null | undefined, results: any): string {
+  if (!sport && !results?.distance) return "[]";
+  const name = SPORT_EXERCISE_NAME[(sport ?? "").toLowerCase()] ?? "Cardio";
+  const ex: Record<string, any> = { name, zone: "none" };
+  if (results?.distance != null) ex.distance = String(Number(results.distance).toFixed(2).replace(/\.?0+$/, ""));
+  if (results?.duration != null) ex.duration = Math.round(Number(results.duration));
+  return JSON.stringify([ex]);
+}
+
 /* ── POST /komoot/import ── */
 // Imports a single Komoot tour as a cardio workout log.
 // Auto-links to an existing workout template if one with the same name exists,
@@ -151,12 +175,19 @@ router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
     let workoutId: number | null = null;
 
     const [existingWorkout] = await db
-      .select({ id: workoutsTable.id })
+      .select({ id: workoutsTable.id, exercises: workoutsTable.exercises })
       .from(workoutsTable)
       .where(and(eq(workoutsTable.userId, userId), eq(workoutsTable.name, workoutName), eq(workoutsTable.type, "cardio")));
 
     if (existingWorkout) {
       workoutId = existingWorkout.id;
+      // Backfill exercises if the template was previously imported with an empty list
+      if (existingWorkout.exercises === "[]" || existingWorkout.exercises === null) {
+        const derived = derivedExercises(sport, results);
+        if (derived !== "[]") {
+          await db.update(workoutsTable).set({ exercises: derived }).where(eq(workoutsTable.id, existingWorkout.id));
+        }
+      }
     } else {
       // 2. Check if a previous log with the same name already has a workoutId
       const [prevLog] = await db
@@ -178,7 +209,7 @@ router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
             name: workoutName,
             type: "cardio",
             description: "Geïmporteerd via Komoot",
-            exercises: "[]",
+            exercises: derivedExercises(sport, results),
             sport: sport ?? null,
             userId,
           })
