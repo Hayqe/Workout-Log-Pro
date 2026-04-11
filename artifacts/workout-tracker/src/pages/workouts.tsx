@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
 function parseExercises(raw: string) {
@@ -94,11 +94,16 @@ export default function WorkoutsPage() {
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Workouts</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">All workout templates</p>
         </div>
-        <Link href="/workouts/new">
-          <Button className="font-mono uppercase tracking-tight gap-2">
-            <Plus className="h-4 w-4" /> New
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground">
+            <Download className="h-4 w-4" /> Komoot Import
           </Button>
-        </Link>
+          <Link href="/workouts/new">
+            <Button className="font-mono uppercase tracking-tight gap-2">
+              <Plus className="h-4 w-4" /> New
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
