@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Dumbbell, Activity, CalendarDays, CalendarCheck, ArrowRight, Clock } from "lucide-react";
+import { Dumbbell, Activity, CalendarDays, CalendarCheck, ArrowRight, Clock, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 
@@ -48,6 +48,18 @@ export default function Dashboard() {
           icon={CalendarCheck}
         />
       </div>
+
+      {/* Log Workout — full-width narrow action bar */}
+      <Link href="/log/new">
+        <div className="flex items-center justify-between px-5 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
+          <div className="flex items-center gap-3">
+            <Plus className="h-4 w-4 shrink-0" />
+            <span className="font-mono font-bold uppercase tracking-tight text-sm">Log Workout</span>
+          </div>
+          <span className="font-mono text-xs opacity-75 hidden sm:block">Ready for today's session?</span>
+          <ArrowRight className="h-4 w-4 shrink-0 opacity-75" />
+        </div>
+      </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart Area */}
@@ -177,20 +189,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-primary border-primary/20 text-primary-foreground shadow-lg relative overflow-hidden">
-            <div className="absolute -right-6 -top-6 opacity-10">
-              <Dumbbell className="w-32 h-32" />
-            </div>
-            <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider">Quick Action</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm mb-4 font-medium opacity-90">Ready for today's session?</p>
-              <Link href="/log/new" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-background text-foreground hover:bg-background/90 h-10 px-4 py-2 w-full font-mono uppercase tracking-tight">
-                Log Workout
-              </Link>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
