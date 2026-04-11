@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link, useSearch } from "wouter";
 import { RestTimer } from "@/components/ui/rest-timer";
-import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
+import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -452,14 +452,14 @@ export default function LogNewPage() {
     return "";
   });
 
-  /* Fallback: apply template if cache was empty on mount but loads later */
-  const appliedRef = useRef(false);
+  /* Fallback 1: apply template if cache was empty on mount but own workouts load later */
+  const appliedRef = useRef(!!initialTemplate);
   const templateFromList = useMemo(
     () => workoutIdFromUrl && workouts ? workouts.find(w => w.id === selectedWorkoutId) ?? null : null,
     [workouts, workoutIdFromUrl, selectedWorkoutId]
   );
   useEffect(() => {
-    if (!templateFromList || appliedRef.current || initialTemplate) return;
+    if (!templateFromList || appliedRef.current) return;
     appliedRef.current = true;
     setWorkoutName(templateFromList.name);
     setWorkoutType(templateFromList.type);
@@ -481,7 +481,39 @@ export default function LogNewPage() {
         if (parsed?.freeText) setCfText(parsed.freeText);
       } catch {}
     }
-  }, [templateFromList, initialTemplate]);
+  }, [templateFromList]);
+
+  /* Fallback 2: fetch by ID for shared workouts owned by another user */
+  const { data: fetchedWorkout } = useGetWorkout(selectedWorkoutId, {
+    query: {
+      enabled: !!workoutIdFromUrl && selectedWorkoutId > 0,
+      queryKey: getGetWorkoutQueryKey(selectedWorkoutId),
+    }
+  });
+  useEffect(() => {
+    if (!fetchedWorkout || appliedRef.current) return;
+    appliedRef.current = true;
+    setWorkoutName(fetchedWorkout.name);
+    setWorkoutType(fetchedWorkout.type);
+    setSelectedTemplateId(fetchedWorkout.id.toString());
+    if (fetchedWorkout.type === "bodybuilding") {
+      try {
+        const exs = JSON.parse(fetchedWorkout.exercises);
+        if (Array.isArray(exs) && exs.length > 0) {
+          setBbResults(exs.map((ex: any) => ({
+            exerciseName: ex.name,
+            sets: Array.from({ length: ex.sets || 3 }, () => ({ reps: ex.reps || 0, weight: ex.weight || 0 }))
+          })));
+        }
+      } catch {}
+    }
+    if (["amrap", "emom", "rft"].includes(fetchedWorkout.type)) {
+      try {
+        const parsed = JSON.parse(fetchedWorkout.exercises);
+        if (parsed?.freeText) setCfText(parsed.freeText);
+      } catch {}
+    }
+  }, [fetchedWorkout]);
 
   const handleTemplateSelect = (id: string) => {
     setSelectedTemplateId(id);
