@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, workoutLogsTable, scheduledWorkoutsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 
 const router: IRouter = Router();
@@ -75,7 +75,9 @@ router.get("/dashboard/recent-logs", requireAuth, async (req, res): Promise<void
 router.get("/dashboard/upcoming", requireAuth, async (req, res): Promise<void> => {
   const userId = req.session.userId!;
   const today = new Date().toISOString().split("T")[0];
-  const all = await db.select().from(scheduledWorkoutsTable).where(eq(scheduledWorkoutsTable.userId, userId));
+  const all = await db.select().from(scheduledWorkoutsTable).where(
+    or(eq(scheduledWorkoutsTable.userId, userId), eq(scheduledWorkoutsTable.isPublic, true))
+  );
   const upcoming = all
     .filter(s => s.scheduledDate >= today && !s.completed)
     .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))

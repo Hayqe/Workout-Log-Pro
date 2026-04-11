@@ -61,9 +61,11 @@ export default function WorkoutNewPage() {
     if (!name || !type) return;
 
     const isCrossfit = ["amrap", "emom", "rft"].includes(type);
+    const filteredExercises = exercises.filter(ex => ex.name.trim());
+    // CrossFit: save both freeText description and individual exercises
     const exercisesJson = isCrossfit
-      ? JSON.stringify({ freeText: cfDescription })
-      : JSON.stringify(exercises.filter(ex => ex.name.trim()));
+      ? JSON.stringify({ freeText: cfDescription, exercises: filteredExercises })
+      : JSON.stringify(filteredExercises);
 
     try {
       await createWorkout.mutateAsync({
@@ -213,11 +215,12 @@ export default function WorkoutNewPage() {
           </Card>
         )}
 
-        {(isBodybuilding || isCardio) && (
+        {/* Movements / Activities card — only for Bodybuilding and Cardio */}
+        {!isCrossfit && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-                {isBodybuilding ? "Movements" : "Activities"}
+                {isCardio ? "Activities" : "Movements"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -228,8 +231,8 @@ export default function WorkoutNewPage() {
                     <ExerciseAutocomplete
                       value={ex.name}
                       onChange={val => updateExercise(i, "name", val)}
-                      category={isBodybuilding ? "bodybuilding" : "cardio"}
-                      placeholder={isBodybuilding ? "Exercise name" : "e.g. Cycling, Running"}
+                      category={isCardio ? "cardio" : "bodybuilding"}
+                      placeholder={isCardio ? "e.g. Cycling, Running" : "Exercise name"}
                     />
                     {exercises.length > 1 && (
                       <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>
@@ -237,6 +240,8 @@ export default function WorkoutNewPage() {
                       </Button>
                     )}
                   </div>
+
+                  {/* Bodybuilding: sets / reps / weight */}
                   {isBodybuilding && (
                     <div className="space-y-2 pl-6">
                       <div className="grid grid-cols-3 gap-2">
@@ -269,6 +274,8 @@ export default function WorkoutNewPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Cardio: distance / duration / zone */}
                   {isCardio && (
                     <div className="grid grid-cols-3 gap-2 pl-6">
                       <div>

@@ -33,6 +33,7 @@ export default function WorkoutEditPage() {
   const { data: workout, isLoading } = useGetWorkout(id, { query: { enabled: !!id, queryKey: getGetWorkoutQueryKey(id) } });
   const updateWorkout = useUpdateWorkout();
 
+  const [loaded, setLoaded] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("bodybuilding");
   const [description, setDescription] = useState("");
@@ -52,19 +53,24 @@ export default function WorkoutEditPage() {
       setSport(workout.sport || "none");
       try {
         const raw = workout.exercises;
-        // Guard: exercises may be a string (text column) or already parsed object
         const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
         if (Array.isArray(parsed)) {
-          // Always keep at least one empty row so the Movements card has content
           setExercises(parsed.length > 0 ? parsed : [{ name: "" }]);
-        } else if (parsed && typeof parsed === "object" && parsed.freeText !== undefined) {
-          setCfDescription(parsed.freeText);
+        } else if (parsed && typeof parsed === "object") {
+          // CrossFit combined format: { freeText, exercises } or legacy { freeText }
+          if (parsed.freeText !== undefined) setCfDescription(parsed.freeText);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            setExercises(parsed.exercises);
+          } else {
+            setExercises([{ name: "" }]);
+          }
         } else {
           setExercises([{ name: "" }]);
         }
       } catch {
         setExercises([{ name: "" }]);
       }
+      setLoaded(true);
     }
   }, [workout]);
 
@@ -77,9 +83,12 @@ export default function WorkoutEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isCf = ["amrap", "emom", "rft"].includes(type);
+    const filteredExercises = exercises.filter(ex => ex.name?.trim());
+
+    // CrossFit: save both freeText description and individual exercises
     const exercisesJson = isCf
-      ? JSON.stringify({ freeText: cfDescription })
-      : JSON.stringify(exercises.filter(ex => ex.name?.trim()));
+      ? JSON.stringify({ freeText: cfDescription, exercises: filteredExercises })
+      : JSON.stringify(filteredExercises);
 
     try {
       await updateWorkout.mutateAsync({
@@ -105,11 +114,15 @@ export default function WorkoutEditPage() {
     }
   };
 
-  if (isLoading) return <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>;
+  if (isLoading || !loaded) return <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>;
 
   const isBodybuilding = type === "bodybuilding";
   const isCrossfit = ["amrap", "emom", "rft"].includes(type);
   const isCardio = type === "cardio";
+
+  const movementsTitle = isCardio ? "Activities" : "Movements";
+  const exerciseCategory = isCardio ? "cardio" : "bodybuilding";
+  const exercisePlaceholder = isCardio ? "e.g. Cycling, Running" : "Exercise name";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
@@ -123,6 +136,7 @@ export default function WorkoutEditPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Details card */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Details</CardTitle>
@@ -181,6 +195,7 @@ export default function WorkoutEditPage() {
           </CardContent>
         </Card>
 
+        {/* CrossFit whiteboard description */}
         {isCrossfit && (
           <Card className="bg-card border-border">
             <CardHeader>
@@ -199,12 +214,11 @@ export default function WorkoutEditPage() {
           </Card>
         )}
 
-        {(isBodybuilding || isCardio) && (
+        {/* Movements / Activities card — only for Bodybuilding and Cardio */}
+        {!isCrossfit && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-                {isBodybuilding ? "Movements" : "Activities"}
-              </CardTitle>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">{movementsTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {exercises.map((ex, i) => (
@@ -214,8 +228,8 @@ export default function WorkoutEditPage() {
                     <ExerciseAutocomplete
                       value={ex.name || ""}
                       onChange={val => updateExercise(i, "name", val)}
-                      category={isBodybuilding ? "bodybuilding" : "cardio"}
-                      placeholder={isBodybuilding ? "Exercise name" : "e.g. Cycling, Running"}
+                      category={exerciseCategory}
+                      placeholder={exercisePlaceholder}
                     />
                     {exercises.length > 1 && (
                       <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>
@@ -223,6 +237,8 @@ export default function WorkoutEditPage() {
                       </Button>
                     )}
                   </div>
+
+                  {/* Bodybuilding: sets / reps / weight */}
                   {isBodybuilding && (
                     <div className="space-y-2 pl-6">
                       <div className="grid grid-cols-3 gap-2">
@@ -255,6 +271,8 @@ export default function WorkoutEditPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Cardio: distance / duration / zone */}
                   {isCardio && (
                     <div className="grid grid-cols-3 gap-2 pl-6">
                       <div>
