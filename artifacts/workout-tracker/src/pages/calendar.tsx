@@ -59,22 +59,26 @@ export default function CalendarPage() {
   const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
   const firstDayOfWeek = (startOfMonth(currentMonth).getDay() + 6) % 7;
 
-  const getScheduledForDay = (day: Date) => {
-    return (scheduled || []).filter(s => {
+  const getScheduledForDay = (day: Date) =>
+    (scheduled || []).filter(s => {
       try { return isSameDay(parseISO(s.scheduledDate), day); } catch { return false; }
     });
+
+  const hasUserLogged = (workoutId: number | null | undefined, dateStr: string): boolean => {
+    if (!workoutId) return false;
+    return (allLogs || []).some((log: any) =>
+      log.workoutId === workoutId && (log.loggedAt || "").split("T")[0] === dateStr
+    );
   };
 
   const getAdHocLogsForDay = (day: Date) => {
-    const dayStr = format(day, "yyyy-MM-dd");
-    const scheduledOnDay = getScheduledForDay(day);
+    const dateStr = format(day, "yyyy-MM-dd");
+    const scheduledWorkoutIds = new Set(
+      getScheduledForDay(day).map(s => s.workoutId).filter(Boolean)
+    );
     return (allLogs || []).filter((log: any) => {
       const logDate = (log.loggedAt || "").split("T")[0];
-      if (logDate !== dayStr) return false;
-      const coveredByScheduled = scheduledOnDay.some(
-        s => s.completed && s.workoutId && s.workoutId === log.workoutId
-      );
-      return !coveredByScheduled;
+      return logDate === dateStr && !scheduledWorkoutIds.has(log.workoutId);
     });
   };
 
@@ -128,7 +132,9 @@ export default function CalendarPage() {
     queryClient.invalidateQueries({ queryKey: getListScheduledWorkoutsQueryKey({}) });
   };
 
+  const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
   const selectedDayScheduled = selectedDate ? getScheduledForDay(selectedDate) : [];
+  const selectedAdHocLogs = selectedDate ? getAdHocLogsForDay(selectedDate) : [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -152,6 +158,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7 gap-1">
             {[...Array(firstDayOfWeek)].map((_, i) => <div key={`empty-${i}`} />)}
             {days.map(day => {
+              const dayStr = format(day, "yyyy-MM-dd");
               const dayScheduled = getScheduledForDay(day);
               const adHocLogs = getAdHocLogsForDay(day);
               const hasWorkout = dayScheduled.length > 0 || adHocLogs.length > 0;
@@ -168,9 +175,10 @@ export default function CalendarPage() {
                   <span className={`text-[11px] font-bold ${today ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</span>
                   {hasWorkout && (
                     <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
-                      {dayScheduled.slice(0, 2).map(s => (
-                        <WorkoutTypeChip key={s.id} type={s.workoutType} done={s.completed} />
-                      ))}
+                      {dayScheduled.slice(0, 2).map(s => {
+                        const logged = hasUserLogged(s.workoutId, dayStr);
+                        return <WorkoutTypeChip key={s.id} type={s.workoutType} done={logged} />;
+                      })}
                       {adHocLogs.slice(0, 2).map((log: any) => (
                         <span key={log.id} className="inline-flex items-center rounded px-1 py-0 font-mono text-[8px] font-bold leading-4 bg-green-900/70 text-green-300 w-full justify-center">✓</span>
                       ))}
@@ -192,27 +200,34 @@ export default function CalendarPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {selectedDayScheduled.length > 0 && (
+            {(selectedDayScheduled.length > 0 || selectedAdHocLogs.length > 0) && (
               <div className="space-y-2">
-                <p className="font-mono text-xs uppercase text-muted-foreground">Scheduled</p>
+                <p className="font-mono text-xs uppercase text-muted-foreground">Workouts this day</p>
+
                 {selectedDayScheduled.map(s => {
                   const own = isOwn(s);
                   const pub = (s as any).isPublic;
+                  const logged = hasUserLogged(s.workoutId, selectedDateStr);
                   return (
-                    <div key={s.id} className={`flex items-center justify-between p-3 rounded border ${s.completed ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}`}>
-                      <div>
+                    <div key={s.id} className={`flex items-center justify-between p-3 rounded border ${logged ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}`}>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-bold text-sm ${s.completed ? "line-through text-muted-foreground" : ""}`}>{s.workoutName}</span>
+                          <span className={`font-bold text-sm ${logged ? "text-muted-foreground" : ""}`}>{s.workoutName}</span>
                           <WorkoutBadge type={s.workoutType} />
-                          {pub && (
-                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
-                              <Globe className="h-2.5 w-2.5" /> Public
+                          {!own && (
+                            <span className="text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
+                              {pub ? <span className="flex items-center gap-1"><Globe className="h-2.5 w-2.5" /> Public</span> : "other"}
+                            </span>
+                          )}
+                          {logged && (
+                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
+                              <Check className="h-2.5 w-2.5" /> Logged
                             </span>
                           )}
                         </div>
                         {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 shrink-0 ml-2">
                         {own && (
                           <>
                             <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
@@ -223,7 +238,7 @@ export default function CalendarPage() {
                             </Button>
                           </>
                         )}
-                        {((own && !s.completed) || (!own && pub)) && s.workoutId && (
+                        {!logged && s.workoutId && (
                           <Link href={`/log/new?workoutId=${s.workoutId}`}>
                             <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
                               Log
@@ -234,6 +249,25 @@ export default function CalendarPage() {
                     </div>
                   );
                 })}
+
+                {selectedAdHocLogs.map((log: any) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 rounded border border-green-500/30 bg-green-500/5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-muted-foreground">{log.workoutName || "Workout"}</span>
+                        {log.workoutType && <WorkoutBadge type={log.workoutType} />}
+                        <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
+                          <Check className="h-2.5 w-2.5" /> Logged
+                        </span>
+                      </div>
+                    </div>
+                    <Link href={`/log/${log.id}`}>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-muted-foreground">
+                        View
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
               </div>
             )}
 
