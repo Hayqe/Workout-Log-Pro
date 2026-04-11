@@ -140,11 +140,35 @@ function ExerciseList({ type, raw }: { type: string; raw: string }) {
   const parsed = parseExercises(raw);
 
   if (["amrap", "emom", "rft"].includes(type)) {
-    const text = parsed?.freeText || raw;
+    if (parsed?.freeText) {
+      return (
+        <pre className="font-mono text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded p-3 leading-relaxed">
+          {parsed.freeText}
+        </pre>
+      );
+    }
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return (
+        <div className="space-y-1.5">
+          {parsed.map((ex: any, i: number) => (
+            <div key={i} className="flex items-center justify-between py-2 px-3 rounded border border-border">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[11px] text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                <span className="font-bold text-sm">{ex.name}</span>
+              </div>
+              <div className="font-mono text-[11px] text-muted-foreground flex gap-3">
+                {ex.reps_per_round && <span>{ex.reps_per_round}×</span>}
+                {ex.distance && <span>{ex.distance}</span>}
+                {ex.weight > 0 && <span>{ex.weight} kg</span>}
+                {ex.duration && <span>{ex.duration} min</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
-      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded p-3 leading-relaxed">
-        {text || <span className="text-muted-foreground italic">No whiteboard content</span>}
-      </pre>
+      <p className="font-mono text-sm text-muted-foreground italic">No whiteboard content</p>
     );
   }
 
