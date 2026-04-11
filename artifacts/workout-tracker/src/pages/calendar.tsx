@@ -209,29 +209,28 @@ export default function CalendarPage() {
                               <Globe className="h-2.5 w-2.5" /> Public
                             </span>
                           )}
-                          {!own && (
-                            <span className="text-[9px] font-mono uppercase text-muted-foreground">shared</span>
-                          )}
                         </div>
                         {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
                       </div>
-                      {own && (
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          {!s.completed && (
-                            <Link href={`/log/new?scheduledId=${s.id}&workoutId=${s.workoutId || ""}`}>
-                              <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
-                                Log
-                              </Button>
-                            </Link>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(s.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-1">
+                        {own && (
+                          <>
+                            <Button variant="ghost" size="icon" className={`h-7 w-7 ${s.completed ? "text-green-500" : "text-muted-foreground"}`} onClick={() => handleToggleDone(s.id, s.completed)}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(s.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
+                        {((own && !s.completed) || (!own && pub)) && s.workoutId && (
+                          <Link href={`/log/new?workoutId=${s.workoutId}`}>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] uppercase text-primary">
+                              Log
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
