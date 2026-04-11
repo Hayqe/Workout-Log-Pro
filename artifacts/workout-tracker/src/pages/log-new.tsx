@@ -38,7 +38,7 @@ function CountdownToStart({ count }: { count: number }) {
 }
 
 /* ─── Fullscreen timer overlay with Wake Lock ─── */
-function FullscreenTimerOverlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+function FullscreenTimerOverlay({ onClose, onTap, tapHint, children }: { onClose: () => void; onTap?: () => void; tapHint?: string; children: React.ReactNode }) {
   const lockRef = useRef<any>(null);
 
   useEffect(() => {
@@ -52,15 +52,23 @@ function FullscreenTimerOverlay({ onClose, children }: { onClose: () => void; ch
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center">
+    <div
+      className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center select-none"
+      onClick={onTap}
+    >
       <button
         type="button"
-        onClick={onClose}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
         className="absolute top-5 right-5 h-11 w-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
       {children}
+      {tapHint && (
+        <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 pointer-events-none">
+          {tapHint}
+        </p>
+      )}
     </div>
   );
 }
@@ -128,14 +136,16 @@ function StopwatchTracker({
 
       <div className="flex flex-col items-center gap-2">
         <p className={`font-mono uppercase tracking-widest text-muted-foreground ${fs ? "text-sm" : "text-[10px]"}`}>Rounds</p>
-        <div className="flex items-center gap-5">
+        {/* stopPropagation on +/− row so these buttons don't also trigger onTap */}
+        <div className="flex items-center gap-5" onClick={fs ? e => e.stopPropagation() : undefined}>
           <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
           <span className={`font-mono font-black tabular-nums text-center ${fs ? "text-7xl w-24" : "text-5xl w-16"}`}>{rounds}</span>
           <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => r + 1)}><Plus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
         </div>
       </div>
 
-      <div className="flex gap-3">
+      {/* stopPropagation on control buttons row */}
+      <div className="flex gap-3" onClick={fs ? e => e.stopPropagation() : undefined}>
         {!running ? (
           <Button type="button" onClick={handleStart} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`} disabled={saved}>
             <Play className="h-4 w-4" />{elapsed === 0 ? "Start" : "Resume"}
@@ -159,7 +169,11 @@ function StopwatchTracker({
 
   if (fullscreen) {
     return (
-      <FullscreenTimerOverlay onClose={() => setFullscreen(false)}>
+      <FullscreenTimerOverlay
+        onClose={() => setFullscreen(false)}
+        onTap={() => setRounds(r => r + 1)}
+        tapHint="Tik om ronde +1 toe te voegen"
+      >
         {timerBody(true)}
       </FullscreenTimerOverlay>
     );
