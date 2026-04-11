@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, workoutsTable } from "@workspace/db";
+import { eq, and, gte } from "drizzle-orm";
+import { db, workoutsTable, scheduledWorkoutsTable } from "@workspace/db";
 import {
   CreateWorkoutBody,
   GetWorkoutParams,
@@ -17,9 +17,7 @@ import { serializeRow, serializeRows } from "../lib/serialize";
 const router: IRouter = Router();
 
 router.get("/workouts", requireAuth, async (req, res): Promise<void> => {
-  const userId = req.session.userId!;
   const workouts = await db.select().from(workoutsTable)
-    .where(eq(workoutsTable.userId, userId))
     .orderBy(workoutsTable.createdAt);
   res.json(ListWorkoutsResponse.parse(serializeRows(workouts as Record<string, unknown>[])));
 });
@@ -81,6 +79,18 @@ router.delete("/workouts/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const userId = req.session.userId!;
+
+  const today = new Date().toISOString().split("T")[0];
+  const futureScheduled = await db.select().from(scheduledWorkoutsTable)
+    .where(and(
+      eq(scheduledWorkoutsTable.workoutId, params.data.id),
+      gte(scheduledWorkoutsTable.scheduledDate, today),
+    ));
+  if (futureScheduled.length > 0) {
+    res.status(409).json({ error: "This template is still scheduled for upcoming workouts and cannot be deleted." });
+    return;
+  }
+
   const [deleted] = await db.delete(workoutsTable)
     .where(and(eq(workoutsTable.id, params.data.id), eq(workoutsTable.userId, userId)))
     .returning();

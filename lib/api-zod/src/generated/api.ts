@@ -66,6 +66,7 @@ export const DeleteExerciseParams = zod.object({
  */
 export const ListWorkoutsResponseItem = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   type: zod.string().describe("bodybuilding | amrap | emom | rft | cardio"),
   description: zod.string().nullish(),
