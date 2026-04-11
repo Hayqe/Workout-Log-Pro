@@ -137,6 +137,8 @@ export interface WorkoutLog {
    * @nullable
    */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
   createdAt: string;
 }
 

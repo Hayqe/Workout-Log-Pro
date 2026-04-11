@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
+import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer } from "lucide-react";
 import { format } from "date-fns";
@@ -49,9 +50,12 @@ export default function LogDetailPage() {
             <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
               <h1 className="text-2xl font-mono font-black tracking-tighter uppercase text-foreground">{log.workoutName}</h1>
               <WorkoutBadge type={log.workoutType} />
+              {log.workoutType === "cardio" && log.sport && (
+                <SportTag sport={log.sport} />
+              )}
             </div>
             <p className="text-muted-foreground font-mono text-sm">{format(new Date(log.loggedAt), "EEEE, MMMM d yyyy — HH:mm")}</p>
           </div>

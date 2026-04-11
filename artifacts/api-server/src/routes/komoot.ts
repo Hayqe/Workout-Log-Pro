@@ -198,6 +198,7 @@ router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
         durationMinutes: durationMinutes ?? null,
         notes: notes ?? null,
         results: results ?? "{}",
+        sport: sport ?? null,
         userId,
       })
       .returning();
