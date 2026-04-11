@@ -43,9 +43,9 @@ if (!sessionSecret) {
 app.use(session({
   store: new PgSession({
     conString: process.env["DATABASE_URL"],
-    createTableIfMissing: true,
+    createTableIfMissing: false,
     tableName: "user_sessions",
-    pruneSessionInterval: 60 * 60, // prune expired sessions every hour
+    pruneSessionInterval: 60 * 60,
   }),
   secret: sessionSecret,
   resave: false,
