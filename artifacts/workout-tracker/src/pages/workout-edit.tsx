@@ -45,19 +45,26 @@ export default function WorkoutEditPage() {
   useEffect(() => {
     if (workout) {
       setName(workout.name);
-      setType(workout.type);
+      setType(workout.type || "bodybuilding");
       setDescription(workout.description || "");
       setDuration(workout.duration?.toString() || "");
       setRounds(workout.rounds?.toString() || "");
       setSport(workout.sport || "none");
       try {
-        const parsed = JSON.parse(workout.exercises);
+        const raw = workout.exercises;
+        // Guard: exercises may be a string (text column) or already parsed object
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
         if (Array.isArray(parsed)) {
-          setExercises(parsed);
-        } else if (parsed?.freeText !== undefined) {
+          // Always keep at least one empty row so the Movements card has content
+          setExercises(parsed.length > 0 ? parsed : [{ name: "" }]);
+        } else if (parsed && typeof parsed === "object" && parsed.freeText !== undefined) {
           setCfDescription(parsed.freeText);
+        } else {
+          setExercises([{ name: "" }]);
         }
-      } catch {}
+      } catch {
+        setExercises([{ name: "" }]);
+      }
     }
   }, [workout]);
 
@@ -194,13 +201,10 @@ export default function WorkoutEditPage() {
 
         {(isBodybuilding || isCardio) && (
           <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
                 {isBodybuilding ? "Movements" : "Activities"}
               </CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1">
-                <Plus className="h-3 w-3" /> Add
-              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {exercises.map((ex, i) => (
@@ -220,18 +224,34 @@ export default function WorkoutEditPage() {
                     )}
                   </div>
                   {isBodybuilding && (
-                    <div className="grid grid-cols-3 gap-2 pl-6">
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Sets</Label>
-                        <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                    <div className="space-y-2 pl-6">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">Sets</Label>
+                          <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                        </div>
+                        <div>
+                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">
+                            {ex.maxReps ? "Min Reps" : "Reps"}
+                          </Label>
+                          <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                        </div>
+                        <div>
+                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">Weight (kg)</Label>
+                          <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} className="font-mono h-8 mt-1" />
+                        </div>
                       </div>
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Reps</Label>
-                        <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
-                      </div>
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Weight (kg)</Label>
-                        <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} className="font-mono h-8 mt-1" />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`maxreps-edit-${i}`}
+                          checked={!!ex.maxReps}
+                          onChange={e => updateExercise(i, "maxReps", e.target.checked)}
+                          className="accent-primary h-3.5 w-3.5"
+                        />
+                        <label htmlFor={`maxreps-edit-${i}`} className="font-mono text-[10px] uppercase text-muted-foreground cursor-pointer">
+                          Max reps (last set)
+                        </label>
                       </div>
                     </div>
                   )}
@@ -261,6 +281,9 @@ export default function WorkoutEditPage() {
                   )}
                 </div>
               ))}
+              <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1 w-full">
+                <Plus className="h-3 w-3" /> Add movement
+              </Button>
             </CardContent>
           </Card>
         )}
