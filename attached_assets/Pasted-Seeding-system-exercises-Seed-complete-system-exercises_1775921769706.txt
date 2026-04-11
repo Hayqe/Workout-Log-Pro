@@ -1,0 +1,68 @@
+Seeding system exercises...
+Seed complete — system exercises ready.
+Starting Stroxx...
+{"level":30,"time":1775921512593,"pid":1,"hostname":"5b86fab094d7","port":8080,"msg":"Server listening"}
+{"level":30,"time":1775921681699,"pid":1,"hostname":"5b86fab094d7","req":{"id":1,"method":"POST","url":"/api/auth/logout"},"res":{"statusCode":200},"responseTime":33,"msg":"request completed"}
+{"level":30,"time":1775921686424,"pid":1,"hostname":"5b86fab094d7","req":{"id":2,"method":"POST","url":"/api/auth/login"},"res":{"statusCode":200},"responseTime":223,"msg":"request completed"}
+Error: ENOENT: no such file or directory, open '/app/artifacts/api-server/dist/table.sql'
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1249:14)
+    at async PGStore._rawEnsureSessionStoreTable (/app/node_modules/.pnpm/connect-pg-simple@10.0.0/node_modules/connect-pg-simple/index.js:183:32)
+    at async PGStore._asyncQuery (/app/node_modules/.pnpm/connect-pg-simple@10.0.0/node_modules/connect-pg-simple/index.js:315:7)
+{"level":40,"time":1775921686526,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"nIaQ8V7t1pWjw5TPy6U9EomTI20iTIYM","hasCookie":true,"method":"GET","url":"/exercises"}
+{"level":30,"time":1775921686527,"pid":1,"hostname":"5b86fab094d7","req":{"id":3,"method":"GET","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+{"level":40,"time":1775921686529,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"YzvlAqkr6ZLL7WT97fxZByLo43kbPdfd","hasCookie":true,"method":"GET","url":"/workout-logs"}
+{"level":30,"time":1775921686529,"pid":1,"hostname":"5b86fab094d7","req":{"id":4,"method":"GET","url":"/api/workout-logs"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+{"level":40,"time":1775921686530,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"jnh-0uGh0QKAbDU_cBJhEAax80xlfZnh","hasCookie":true,"method":"GET","url":"/workouts"}
+{"level":30,"time":1775921686531,"pid":1,"hostname":"5b86fab094d7","req":{"id":5,"method":"GET","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+{"level":40,"time":1775921690366,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"U1p4Fsha4YdkvJuJoblakQiyqalC7sjv","hasCookie":true,"method":"GET","url":"/dashboard/summary"}
+{"level":30,"time":1775921690367,"pid":1,"hostname":"5b86fab094d7","req":{"id":6,"method":"GET","url":"/api/dashboard/summary"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921690368,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"LFpI-QXmYwwAkz2XUjZwJbVKfgNrMLXA","hasCookie":true,"method":"GET","url":"/dashboard/recent-logs"}
+{"level":30,"time":1775921690368,"pid":1,"hostname":"5b86fab094d7","req":{"id":7,"method":"GET","url":"/api/dashboard/recent-logs"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+{"level":40,"time":1775921690369,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"hfH1szYWiWYSXFLDfZgzBdRMBS3frCe8","hasCookie":true,"method":"GET","url":"/dashboard/upcoming"}
+{"level":30,"time":1775921690370,"pid":1,"hostname":"5b86fab094d7","req":{"id":8,"method":"GET","url":"/api/dashboard/upcoming"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+{"level":40,"time":1775921690372,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"RxsBrWcKnVZ61fSgWg0vOdlzY2YQALuC","hasCookie":true,"method":"GET","url":"/dashboard/weekly-volume"}
+{"level":30,"time":1775921690372,"pid":1,"hostname":"5b86fab094d7","req":{"id":9,"method":"GET","url":"/api/dashboard/weekly-volume"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
+{"level":30,"time":1775921690377,"pid":1,"hostname":"5b86fab094d7","req":{"id":10,"method":"GET","url":"/favicon.svg"},"res":{"statusCode":200},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921691522,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"vuv3riHn3GeomSzSOvB1N3ubozt4DoZ0","hasCookie":true,"method":"GET","url":"/workouts"}
+{"level":30,"time":1775921691523,"pid":1,"hostname":"5b86fab094d7","req":{"id":11,"method":"GET","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921691525,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"snxCmFX11J7fRKlr-s9b8OQW_fG6td-0","hasCookie":true,"method":"GET","url":"/scheduled-workouts"}
+{"level":30,"time":1775921691526,"pid":1,"hostname":"5b86fab094d7","req":{"id":12,"method":"GET","url":"/api/scheduled-workouts"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+{"level":40,"time":1775921691527,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"J2bUKk83W5fKfo1FoDzup6PO3Dj3u2gw","hasCookie":true,"method":"GET","url":"/workout-logs"}
+{"level":30,"time":1775921691528,"pid":1,"hostname":"5b86fab094d7","req":{"id":13,"method":"GET","url":"/api/workout-logs"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+{"level":30,"time":1775921691530,"pid":1,"hostname":"5b86fab094d7","req":{"id":14,"method":"GET","url":"/favicon.svg"},"res":{"statusCode":304},"responseTime":2,"msg":"request completed"}
+{"level":40,"time":1775921694782,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"OgfS30LrYuS3PHd--5SZKQWzs9nnEbrp","hasCookie":true,"method":"GET","url":"/exercises"}
+{"level":30,"time":1775921694783,"pid":1,"hostname":"5b86fab094d7","req":{"id":15,"method":"GET","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+{"level":30,"time":1775921694786,"pid":1,"hostname":"5b86fab094d7","req":{"id":16,"method":"GET","url":"/favicon.svg"},"res":{"statusCode":304},"responseTime":2,"msg":"request completed"}
+{"level":40,"time":1775921701382,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"44X9jUCwmg3U1jJMDav-K0SyyhtVHRNI","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921701383,"pid":1,"hostname":"5b86fab094d7","req":{"id":17,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":2,"msg":"request completed"}
+{"level":40,"time":1775921702485,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"ll58Br-C-odk80uZFaDbpB8vkFYpaYpL","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921702486,"pid":1,"hostname":"5b86fab094d7","req":{"id":18,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921702957,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"0xnvTD3xAMXnOV2n3jJfR85d_4Cl3hyQ","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921702958,"pid":1,"hostname":"5b86fab094d7","req":{"id":19,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921703173,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"MQE2vyhyb_4mD0dDiGP0OYuMjsXNFsHn","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921703175,"pid":1,"hostname":"5b86fab094d7","req":{"id":20,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921703335,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"F9q3rsQutZUm9zVylySI1t7-Uf1OuzkZ","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921703337,"pid":1,"hostname":"5b86fab094d7","req":{"id":21,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921703506,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"zQWKyurRuORK79TLpX3QMamHOOxBM1Bc","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921703507,"pid":1,"hostname":"5b86fab094d7","req":{"id":22,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921703679,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"f0uk0PxXs6gvJSgT3J1BTY_W1Q6HwmLj","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921703680,"pid":1,"hostname":"5b86fab094d7","req":{"id":23,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921703844,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"JUHLN0EYLnsQrI13e8HBgoJh6FMq9335","hasCookie":true,"method":"POST","url":"/exercises"}
+{"level":30,"time":1775921703845,"pid":1,"hostname":"5b86fab094d7","req":{"id":24,"method":"POST","url":"/api/exercises"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921704795,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"tki83a66KcrURZag8oSER1sVl19iWhMK","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921704796,"pid":1,"hostname":"5b86fab094d7","req":{"id":25,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921705347,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"w8gwmK8n-Y77GXAH9T6gRqv_BCWNrp2M","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921705348,"pid":1,"hostname":"5b86fab094d7","req":{"id":26,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921705612,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"0VQDmRZGt5p_QSGy-IyAryVoKklAatO4","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921705613,"pid":1,"hostname":"5b86fab094d7","req":{"id":27,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":4,"msg":"request completed"}
+{"level":40,"time":1775921706150,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"1P8xYDrNY8KfQ7EaoCGqV_JN9w3tnG4z","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921706151,"pid":1,"hostname":"5b86fab094d7","req":{"id":28,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921706528,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"PwB1s64HaQMpnCAgIRsYCPapNXjCQYcc","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921706529,"pid":1,"hostname":"5b86fab094d7","req":{"id":29,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921706877,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"4CBAfASYqET_ds2bbWv46vMlbMdB6eG9","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921706878,"pid":1,"hostname":"5b86fab094d7","req":{"id":30,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921720493,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"an-pbJ3d7sBdTShmwJ_DHgmGJXys0g26","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921720494,"pid":1,"hostname":"5b86fab094d7","req":{"id":31,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":3,"msg":"request completed"}
+{"level":40,"time":1775921721314,"pid":1,"hostname":"5b86fab094d7","msg":"requireAuth: no session userId","sessionID":"KEzVHm6oK9Pw_5NglAuUBHm3diwKpleg","hasCookie":true,"method":"POST","url":"/workouts"}
+{"level":30,"time":1775921721315,"pid":1,"hostname":"5b86fab094d7","req":{"id":32,"method":"POST","url":"/api/workouts"},"res":{"statusCode":401},"responseTime":1,"msg":"request completed"}
