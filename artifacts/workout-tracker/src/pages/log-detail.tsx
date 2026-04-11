@@ -20,6 +20,11 @@ export default function LogDetailPage() {
   });
   const deleteLog = useDeleteWorkoutLog();
 
+  // Must be called unconditionally — before any early returns
+  const { data: linkedWorkout } = useGetWorkout(log?.workoutId ?? 0, {
+    query: { enabled: !!log?.workoutId, queryKey: getGetWorkoutQueryKey(log?.workoutId ?? 0) }
+  });
+
   const handleDelete = async () => {
     if (!confirm("Delete this log entry?")) return;
     await deleteLog.mutateAsync({ id });
@@ -34,10 +39,6 @@ export default function LogDetailPage() {
       <Link href="/log"><Button variant="outline" className="mt-4 font-mono uppercase">Back to Log Book</Button></Link>
     </div>
   );
-
-  const { data: linkedWorkout } = useGetWorkout(log.workoutId ?? 0, {
-    query: { enabled: !!log.workoutId, queryKey: getGetWorkoutQueryKey(log.workoutId ?? 0) }
-  });
 
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}

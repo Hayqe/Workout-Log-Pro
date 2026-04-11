@@ -147,13 +147,30 @@ const SPORT_EXERCISE_NAME: Record<string, string> = {
   other: "Cardio",
 };
 
-function derivedExercises(sport: string | null | undefined, results: any): string {
-  if (!sport && !results?.distance) return "[]";
-  const name = SPORT_EXERCISE_NAME[(sport ?? "").toLowerCase()] ?? "Cardio";
-  const ex: Record<string, any> = { name, zone: "none" };
-  if (results?.distance != null) ex.distance = String(Number(results.distance).toFixed(2).replace(/\.?0+$/, ""));
+function sportExerciseName(sport: string | null | undefined): string {
+  return SPORT_EXERCISE_NAME[(sport ?? "").toLowerCase()] ?? "Cardio";
+}
+
+function buildExercise(sport: string | null | undefined, results: any): Record<string, any> {
+  const ex: Record<string, any> = { name: sportExerciseName(sport), zone: "none" };
   if (results?.duration != null) ex.duration = Math.round(Number(results.duration));
-  return JSON.stringify([ex]);
+  return ex;
+}
+
+function derivedExercises(sport: string | null | undefined, results: any): string {
+  if (!sport) return "[]";
+  return JSON.stringify([buildExercise(sport, results)]);
+}
+
+function mergeExercise(existing: string | null, sport: string | null | undefined, results: any): string | null {
+  if (!sport) return null;
+  let exs: any[] = [];
+  try { exs = JSON.parse(existing ?? "[]"); } catch {}
+  if (!Array.isArray(exs)) exs = [];
+  const name = sportExerciseName(sport);
+  if (exs.some((e: any) => e.name === name)) return null; // already present
+  exs.push(buildExercise(sport, results));
+  return JSON.stringify(exs);
 }
 
 /* ── POST /komoot/import ── */
@@ -181,12 +198,10 @@ router.post("/komoot/import", requireAuth, async (req, res): Promise<void> => {
 
     if (existingWorkout) {
       workoutId = existingWorkout.id;
-      // Backfill exercises if the template was previously imported with an empty list
-      if (existingWorkout.exercises === "[]" || existingWorkout.exercises === null) {
-        const derived = derivedExercises(sport, results);
-        if (derived !== "[]") {
-          await db.update(workoutsTable).set({ exercises: derived }).where(eq(workoutsTable.id, existingWorkout.id));
-        }
+      // Add missing sport exercise to the template if not already present
+      const merged = mergeExercise(existingWorkout.exercises, sport, results);
+      if (merged !== null) {
+        await db.update(workoutsTable).set({ exercises: merged }).where(eq(workoutsTable.id, existingWorkout.id));
       }
     } else {
       // 2. Check if a previous log with the same name already has a workoutId
