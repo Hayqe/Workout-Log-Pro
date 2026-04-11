@@ -52,13 +52,17 @@ export default function WorkoutEditPage() {
       setSport(workout.sport || "none");
       try {
         const raw = workout.exercises;
-        // Guard: exercises may be a string (text column) or already parsed object
         const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
         if (Array.isArray(parsed)) {
-          // Always keep at least one empty row so the Movements card has content
           setExercises(parsed.length > 0 ? parsed : [{ name: "" }]);
-        } else if (parsed && typeof parsed === "object" && parsed.freeText !== undefined) {
-          setCfDescription(parsed.freeText);
+        } else if (parsed && typeof parsed === "object") {
+          // CrossFit combined format: { freeText, exercises } or legacy { freeText }
+          if (parsed.freeText !== undefined) setCfDescription(parsed.freeText);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            setExercises(parsed.exercises);
+          } else {
+            setExercises([{ name: "" }]);
+          }
         } else {
           setExercises([{ name: "" }]);
         }
@@ -77,9 +81,12 @@ export default function WorkoutEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isCf = ["amrap", "emom", "rft"].includes(type);
+    const filteredExercises = exercises.filter(ex => ex.name?.trim());
+
+    // CrossFit: save both freeText description and individual exercises
     const exercisesJson = isCf
-      ? JSON.stringify({ freeText: cfDescription })
-      : JSON.stringify(exercises.filter(ex => ex.name?.trim()));
+      ? JSON.stringify({ freeText: cfDescription, exercises: filteredExercises })
+      : JSON.stringify(filteredExercises);
 
     try {
       await updateWorkout.mutateAsync({
@@ -111,6 +118,10 @@ export default function WorkoutEditPage() {
   const isCrossfit = ["amrap", "emom", "rft"].includes(type);
   const isCardio = type === "cardio";
 
+  const movementsTitle = isCardio ? "Activities" : "Movements";
+  const exerciseCategory = isCardio ? "cardio" : "bodybuilding";
+  const exercisePlaceholder = isCardio ? "e.g. Cycling, Running" : "Exercise name";
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div className="flex items-center gap-4">
@@ -123,6 +134,7 @@ export default function WorkoutEditPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Details card */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Details</CardTitle>
@@ -181,6 +193,7 @@ export default function WorkoutEditPage() {
           </CardContent>
         </Card>
 
+        {/* CrossFit whiteboard description */}
         {isCrossfit && (
           <Card className="bg-card border-border">
             <CardHeader>
@@ -199,94 +212,109 @@ export default function WorkoutEditPage() {
           </Card>
         )}
 
-        {(isBodybuilding || isCardio) && (
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-                {isBodybuilding ? "Movements" : "Activities"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {exercises.map((ex, i) => (
-                <div key={i} className="space-y-3 p-4 rounded border border-border bg-background/50">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
-                    <ExerciseAutocomplete
-                      value={ex.name || ""}
-                      onChange={val => updateExercise(i, "name", val)}
-                      category={isBodybuilding ? "bodybuilding" : "cardio"}
-                      placeholder={isBodybuilding ? "Exercise name" : "e.g. Cycling, Running"}
-                    />
-                    {exercises.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  {isBodybuilding && (
-                    <div className="space-y-2 pl-6">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">Sets</Label>
-                          <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
-                        </div>
-                        <div>
-                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">
-                            {ex.maxReps ? "Min Reps" : "Reps"}
-                          </Label>
-                          <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
-                        </div>
-                        <div>
-                          <Label className="font-mono text-[10px] uppercase text-muted-foreground">Weight (kg)</Label>
-                          <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} className="font-mono h-8 mt-1" />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`maxreps-edit-${i}`}
-                          checked={!!ex.maxReps}
-                          onChange={e => updateExercise(i, "maxReps", e.target.checked)}
-                          className="accent-primary h-3.5 w-3.5"
-                        />
-                        <label htmlFor={`maxreps-edit-${i}`} className="font-mono text-[10px] uppercase text-muted-foreground cursor-pointer">
-                          Max reps (last set)
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  {isCardio && (
-                    <div className="grid grid-cols-3 gap-2 pl-6">
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Distance</Label>
-                        <Input value={ex.distance || ""} onChange={e => updateExercise(i, "distance", e.target.value)} className="font-mono h-8 mt-1" />
-                      </div>
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Duration (min)</Label>
-                        <Input type="number" value={ex.duration || ""} onChange={e => updateExercise(i, "duration", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
-                      </div>
-                      <div>
-                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Zone</Label>
-                        <Select value={ex.zone || "none"} onValueChange={val => updateExercise(i, "zone", val === "none" ? "" : val)}>
-                          <SelectTrigger className="font-mono h-8 mt-1 text-xs">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none" className="font-mono text-xs">None</SelectItem>
-                            {ZONES.map(z => <SelectItem key={z} value={z} className="font-mono text-xs">{z}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+        {/* Movements / Activities card — visible for ALL types */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">{movementsTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {exercises.map((ex, i) => (
+              <div key={i} className="space-y-3 p-4 rounded border border-border bg-background/50">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground w-4">{i + 1}</span>
+                  <ExerciseAutocomplete
+                    value={ex.name || ""}
+                    onChange={val => updateExercise(i, "name", val)}
+                    category={exerciseCategory}
+                    placeholder={exercisePlaceholder}
+                  />
+                  {exercises.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveExercise(i)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1 w-full">
-                <Plus className="h-3 w-3" /> Add movement
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+
+                {/* Bodybuilding: sets / reps / weight */}
+                {isBodybuilding && (
+                  <div className="space-y-2 pl-6">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Sets</Label>
+                        <Input type="number" value={ex.sets || ""} onChange={e => updateExercise(i, "sets", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                      </div>
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">
+                          {ex.maxReps ? "Min Reps" : "Reps"}
+                        </Label>
+                        <Input type="number" value={ex.reps || ""} onChange={e => updateExercise(i, "reps", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                      </div>
+                      <div>
+                        <Label className="font-mono text-[10px] uppercase text-muted-foreground">Weight (kg)</Label>
+                        <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} className="font-mono h-8 mt-1" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`maxreps-edit-${i}`}
+                        checked={!!ex.maxReps}
+                        onChange={e => updateExercise(i, "maxReps", e.target.checked)}
+                        className="accent-primary h-3.5 w-3.5"
+                      />
+                      <label htmlFor={`maxreps-edit-${i}`} className="font-mono text-[10px] uppercase text-muted-foreground cursor-pointer">
+                        Max reps (last set)
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* CrossFit: reps per round */}
+                {isCrossfit && (
+                  <div className="grid grid-cols-2 gap-2 pl-6">
+                    <div>
+                      <Label className="font-mono text-[10px] uppercase text-muted-foreground">Reps per round</Label>
+                      <Input type="number" value={ex.repsPerRound || ""} onChange={e => updateExercise(i, "repsPerRound", parseInt(e.target.value))} className="font-mono h-8 mt-1" placeholder="—" />
+                    </div>
+                    <div>
+                      <Label className="font-mono text-[10px] uppercase text-muted-foreground">Weight (kg)</Label>
+                      <Input type="number" value={ex.weight || ""} onChange={e => updateExercise(i, "weight", parseFloat(e.target.value))} className="font-mono h-8 mt-1" placeholder="—" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Cardio: distance / duration / zone */}
+                {isCardio && (
+                  <div className="grid grid-cols-3 gap-2 pl-6">
+                    <div>
+                      <Label className="font-mono text-[10px] uppercase text-muted-foreground">Distance</Label>
+                      <Input value={ex.distance || ""} onChange={e => updateExercise(i, "distance", e.target.value)} className="font-mono h-8 mt-1" />
+                    </div>
+                    <div>
+                      <Label className="font-mono text-[10px] uppercase text-muted-foreground">Duration (min)</Label>
+                      <Input type="number" value={ex.duration || ""} onChange={e => updateExercise(i, "duration", parseInt(e.target.value))} className="font-mono h-8 mt-1" />
+                    </div>
+                    <div>
+                      <Label className="font-mono text-[10px] uppercase text-muted-foreground">Zone</Label>
+                      <Select value={ex.zone || "none"} onValueChange={val => updateExercise(i, "zone", val === "none" ? "" : val)}>
+                        <SelectTrigger className="font-mono h-8 mt-1 text-xs">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none" className="font-mono text-xs">None</SelectItem>
+                          {ZONES.map(z => <SelectItem key={z} value={z} className="font-mono text-xs">{z}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={handleAddExercise} className="font-mono uppercase text-xs gap-1 w-full">
+              <Plus className="h-3 w-3" /> Add movement
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="flex justify-end gap-3">
           <Link href={`/workouts/${id}`}>
