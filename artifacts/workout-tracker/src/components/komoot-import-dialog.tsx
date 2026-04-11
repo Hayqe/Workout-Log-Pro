@@ -41,20 +41,7 @@ const SPORT_LABELS: Record<string, string> = {
 function sportLabel(sport: string) {
   return SPORT_LABELS[sport] ?? sport;
 }
-// Auto-generated Komoot names follow "{sport} {YYYY-MM-DD HH:MM:SS}".
-// For those we use just the sport label so all rides of the same type
-// link to the same workout template (= herhalingen).
-// User-defined names are kept as-is.
 function displayName(tour: KomootTour): string {
-  const sportKeys = Object.keys(SPORT_LABELS);
-  const nameLower = tour.name.toLowerCase();
-  const matchedSport = sportKeys.find(k => nameLower.startsWith(k));
-  if (matchedSport) {
-    const rest = tour.name.slice(matchedSport.length).trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(rest)) {
-      return sportLabel(matchedSport); // e.g. "Toerfietsen" — all repeats group together
-    }
-  }
   return tour.name;
 }
 function SportIcon({ sport }: { sport: string }) {
