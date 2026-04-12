@@ -157,9 +157,9 @@ export default function LogEditPage() {
 
   const buildResults = () => {
     if (workoutType === "bodybuilding") return JSON.stringify(bbResults);
-    if (workoutType === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0 });
-    if (workoutType === "emom") return JSON.stringify({ score: emomScore });
-    if (workoutType === "rft") return JSON.stringify({ time: rftTime });
+    if (workoutType === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0, freeText: cfText || undefined });
+    if (workoutType === "emom") return JSON.stringify({ score: emomScore, freeText: cfText || undefined });
+    if (workoutType === "rft") return JSON.stringify({ time: rftTime, freeText: cfText || undefined });
     if (workoutType === "cardio") return JSON.stringify({
       distance: parseFloat(cardioDistance) || 0,
       duration: parseInt(cardioDuration) || 0,

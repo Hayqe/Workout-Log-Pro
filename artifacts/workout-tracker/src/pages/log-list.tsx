@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListWorkoutLogs, getListWorkoutLogsQueryKey, useDeleteWorkoutLog } from "@workspace/api-client-react";
+import { useListWorkoutLogs, getListWorkoutLogsQueryKey, useDeleteWorkoutLog, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,9 +35,19 @@ function wmoLabel(code: number | null): { emoji: string; label: string } {
   return { emoji: "🌡️", label: `Code ${code}` };
 }
 
-function LogDetail({ log }: { log: any }) {
+function LogDetail({ log, workout }: { log: any; workout?: any }) {
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
+
+  // Whiteboard freeText: prefer stored in log results, fall back to linked template
+  let templateFreeText: string | null = null;
+  if (workout?.exercises) {
+    try {
+      const parsed = JSON.parse(workout.exercises);
+      if (parsed?.freeText) templateFreeText = parsed.freeText;
+    } catch {}
+  }
+  const cfWhiteboard: string | null = results?.freeText ?? templateFreeText;
 
   let weather: { temp?: number | null; tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; winddir?: number | null; weathercode?: number | null } | null = null;
   if (log.weatherJson) {
@@ -84,6 +94,14 @@ function LogDetail({ log }: { log: any }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* CrossFit whiteboard */}
+      {isCf && cfWhiteboard && (
+        <div className="bg-muted/20 rounded border border-border p-3">
+          <p className="font-mono text-[10px] uppercase text-muted-foreground mb-2">Whiteboard</p>
+          <pre className="font-mono text-sm text-foreground whitespace-pre-wrap leading-relaxed">{cfWhiteboard}</pre>
         </div>
       )}
 
@@ -210,10 +228,12 @@ function LogDetail({ log }: { log: any }) {
 
 export default function LogListPage() {
   const { data: logs, isLoading } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
+  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const deleteLog = useDeleteWorkoutLog();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  const workoutById = (workouts ?? []).reduce<Record<number, any>>((acc, w) => { acc[w.id] = w; return acc; }, {});
   const sortedLogs = [...(logs || [])].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
@@ -309,7 +329,7 @@ export default function LogListPage() {
                   </CardContent>
                 </div>
 
-                {isOpen && <LogDetail log={log} />}
+                {isOpen && <LogDetail log={log} workout={log.workoutId ? workoutById[log.workoutId] : undefined} />}
               </Card>
             );
           })}

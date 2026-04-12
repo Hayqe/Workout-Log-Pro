@@ -608,9 +608,9 @@ export default function LogNewPage() {
   const buildResults = () => {
     const type = workoutType;
     if (type === "bodybuilding") return JSON.stringify(bbResults);
-    if (type === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0 });
-    if (type === "emom") return JSON.stringify({ score: emomScore });
-    if (type === "rft") return JSON.stringify({ time: rftTime });
+    if (type === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0, freeText: cfText || undefined });
+    if (type === "emom") return JSON.stringify({ score: emomScore, freeText: cfText || undefined });
+    if (type === "rft") return JSON.stringify({ time: rftTime, freeText: cfText || undefined });
     if (type === "cardio") return JSON.stringify({ distance: parseFloat(cardioDistance) || 0, duration: parseInt(cardioDuration) || 0, avgHeartRate: parseInt(cardioHR) || null, elevationGain: parseInt(cardioElevation) || null });
     return "{}";
   };

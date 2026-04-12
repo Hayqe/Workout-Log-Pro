@@ -75,12 +75,17 @@ export default function LogDetailPage() {
   }
 
   let templateExercises: any[] = [];
+  let templateFreeText: string | null = null;
   if (linkedWorkout?.exercises) {
     try {
       const parsed = JSON.parse(linkedWorkout.exercises);
       if (Array.isArray(parsed)) templateExercises = parsed;
+      else if (parsed?.freeText) templateFreeText = parsed.freeText;
     } catch {}
   }
+
+  // Whiteboard text: prefer the value stored in the log itself, fall back to template
+  const cfWhiteboard: string | null = results?.freeText ?? templateFreeText;
 
   const isBb = log.workoutType === "bodybuilding";
   const isCf = ["amrap", "emom", "rft"].includes(log.workoutType);
@@ -152,6 +157,17 @@ export default function LogDetailPage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {isCf && cfWhiteboard && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Whiteboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="font-mono text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded p-3 leading-relaxed">{cfWhiteboard}</pre>
           </CardContent>
         </Card>
       )}
