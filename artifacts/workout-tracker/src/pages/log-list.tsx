@@ -7,12 +7,32 @@ import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Plus, ChevronRight, Trash2, Clock, Star, History, Bike, Heart, Mountain, Timer } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
+
+function wmoLabel(code: number | null): { emoji: string; label: string } {
+  if (code === null) return { emoji: "❓", label: "Onbekend" };
+  if (code === 0) return { emoji: "☀️", label: "Helder" };
+  if (code <= 2) return { emoji: "🌤️", label: "Gedeeltelijk bewolkt" };
+  if (code === 3) return { emoji: "☁️", label: "Bewolkt" };
+  if (code <= 49) return { emoji: "🌫️", label: "Mist" };
+  if (code <= 59) return { emoji: "🌧️", label: "Motregen" };
+  if (code <= 69) return { emoji: "🌧️", label: "Regen" };
+  if (code <= 79) return { emoji: "❄️", label: "Sneeuw" };
+  if (code <= 82) return { emoji: "🌦️", label: "Regenbuien" };
+  if (code <= 84) return { emoji: "🌨️", label: "Hagelbuien" };
+  if (code <= 99) return { emoji: "⛈️", label: "Onweer" };
+  return { emoji: "🌡️", label: `Code ${code}` };
+}
 
 function LogDetail({ log }: { log: any }) {
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
+
+  let weather: { tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; weathercode?: number | null } | null = null;
+  if (log.weatherJson) {
+    try { weather = JSON.parse(log.weatherJson); } catch {}
+  }
 
   const isBb = log.workoutType === "bodybuilding";
   const isCf = ["amrap", "emom", "rft"].includes(log.workoutType);
@@ -89,29 +109,71 @@ function LogDetail({ log }: { log: any }) {
 
       {/* Cardio */}
       {isCardio && (
-        <div className="grid grid-cols-2 gap-3 font-mono">
-          {results.distance != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Bike className="h-3 w-3" /> Distance</div>
-              <p className="text-2xl font-black text-primary">{results.distance}<span className="text-sm ml-1">km</span></p>
-            </div>
-          )}
-          {results.duration != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
-              <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
-            </div>
-          )}
-          {results.avgHeartRate != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Heart className="h-3 w-3" /> Avg HR</div>
-              <p className="text-2xl font-black">{results.avgHeartRate}<span className="text-sm ml-1">bpm</span></p>
-            </div>
-          )}
-          {results.elevationGain != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Mountain className="h-3 w-3" /> Elevation</div>
-              <p className="text-2xl font-black">{results.elevationGain}<span className="text-sm ml-1">m</span></p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 font-mono">
+            {results.distance != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Bike className="h-3 w-3" /> Distance</div>
+                <p className="text-2xl font-black text-primary">{results.distance}<span className="text-sm ml-1">km</span></p>
+              </div>
+            )}
+            {results.duration != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
+                <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
+              </div>
+            )}
+            {results.avgHeartRate != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Heart className="h-3 w-3" /> Avg HR</div>
+                <p className="text-2xl font-black">{results.avgHeartRate}<span className="text-sm ml-1">bpm</span></p>
+              </div>
+            )}
+            {results.elevationGain != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Mountain className="h-3 w-3" /> Elevation</div>
+                <p className="text-2xl font-black">{results.elevationGain}<span className="text-sm ml-1">m</span></p>
+              </div>
+            )}
+          </div>
+
+          {/* Location + Weather */}
+          {(log.location || weather) && (
+            <div className="bg-muted/20 rounded border border-border p-3 space-y-2">
+              {log.location && (
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="font-mono text-xs text-foreground leading-snug">{log.location}</p>
+                </div>
+              )}
+              {weather && (
+                <div className="flex flex-wrap items-center gap-3 font-mono text-xs">
+                  {weather.weathercode != null && (
+                    <span className="flex items-center gap-1 font-bold">
+                      <span>{wmoLabel(weather.weathercode ?? null).emoji}</span>
+                      <span>{wmoLabel(weather.weathercode ?? null).label}</span>
+                    </span>
+                  )}
+                  {(weather.tempMin != null || weather.tempMax != null) && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Thermometer className="h-3 w-3" />
+                      {weather.tempMin != null && <span className="text-blue-400">{weather.tempMin}°</span>}
+                      {weather.tempMin != null && weather.tempMax != null && <span>–</span>}
+                      {weather.tempMax != null && <span className="text-red-400">{weather.tempMax}°C</span>}
+                    </span>
+                  )}
+                  {weather.windspeed != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Wind className="h-3 w-3" />{weather.windspeed} km/u
+                    </span>
+                  )}
+                  {weather.precipitation != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Droplets className="h-3 w-3" />{weather.precipitation} mm
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
