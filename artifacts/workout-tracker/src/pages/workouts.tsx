@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-context";
 import { KomootImportDialog } from "@/components/komoot-import-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { SportTag } from "@/components/ui/sport-tag";
@@ -203,7 +202,6 @@ function ExerciseList({ type, raw }: { type: string; raw: string }) {
 }
 
 export default function WorkoutsPage() {
-  const { user } = useAuth();
   const { data: workouts, isLoading } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const { data: scheduled } = useListScheduledWorkouts(undefined, { query: { queryKey: getListScheduledWorkoutsQueryKey({}) } });
   const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
@@ -279,7 +277,7 @@ export default function WorkoutsPage() {
         <div className="space-y-2">
           {workouts?.map((workout) => {
             const isOpen = expandedId === workout.id;
-            const isOwner = workout.userId === user?.id;
+            const isOwner = true; // API only returns workouts belonging to the current user
             const isLocked = futureScheduledWorkoutIds.has(workout.id);
             const logs = logsByWorkoutId[workout.id] ?? [];
 
