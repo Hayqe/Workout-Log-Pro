@@ -29,14 +29,14 @@ function fmtDistance(m: number) {
 function fmtDuration(s: number) {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}u ${m}m` : `${m}m`;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 const SPORT_LABELS: Record<string, string> = {
-  cycling: "Fietsen", touringbicycle: "Toerfietsen", mtb: "MTB", mtb_easy: "MTB",
-  mtb_advanced: "MTB", racebike: "Racefiets", e_mtb: "E-MTB", e_touringbicycle: "E-Bike",
-  running: "Hardlopen", jogging: "Hardlopen", hiking: "Wandelen", hike: "Wandelen",
-  mountaineering: "Bergwandelen", nordic_walking: "Nordic Walking", skating: "Skeeleren",
-  swimming: "Zwemmen", other: "Anders",
+  cycling: "Cycling", touringbicycle: "Touring Cycling", mtb: "MTB", mtb_easy: "MTB",
+  mtb_advanced: "MTB", racebike: "Road Bike", e_mtb: "E-MTB", e_touringbicycle: "E-Bike",
+  running: "Running", jogging: "Running", hiking: "Hiking", hike: "Hiking",
+  mountaineering: "Mountaineering", nordic_walking: "Nordic Walking", skating: "Skating",
+  swimming: "Swimming", other: "Other",
 };
 function sportLabel(sport: string) {
   return SPORT_LABELS[sport] ?? sport;
@@ -79,7 +79,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
       setTours(data.tours);
       setStatus("ready");
     } catch (e: any) {
-      setErrorMsg(e.message ?? "Onbekende fout");
+      setErrorMsg(e.message ?? "Unknown error");
       setStatus("error");
     }
   }, []);
@@ -106,22 +106,21 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
         workoutName: displayName(tour),
         loggedAt,
         durationMinutes: durationMin,
-        notes: `Geïmporteerd via Komoot · ${sportLabel(tour.sport)}`,
+        notes: `Imported via Komoot · ${sportLabel(tour.sport)}`,
         results,
         sport: tour.sport,
       };
-      // Use /api/komoot/import so the server auto-links repeats to the same workout template
       const r = await apiFetch("/api/komoot/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(`Import mislukt: HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`Import failed: HTTP ${r.status}`);
       setImportedIds(prev => new Set([...prev, tour.id]));
       queryClient.invalidateQueries({ queryKey: getListWorkoutLogsQueryKey() });
       setStatus("ready");
     } catch (e: any) {
-      setErrorMsg(e.message ?? "Import mislukt");
+      setErrorMsg(e.message ?? "Import failed");
       setStatus("error");
     }
   };
@@ -141,7 +140,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
           {status === "loading" && (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="font-mono text-sm text-muted-foreground">Verbinden met Komoot…</p>
+              <p className="font-mono text-sm text-muted-foreground">Connecting to Komoot…</p>
             </div>
           )}
 
@@ -150,10 +149,10 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
             <div className="flex flex-col items-center justify-center h-48 gap-4 px-8 text-center">
               <AlertCircle className="h-8 w-8 text-muted-foreground" />
               <p className="font-mono text-sm text-muted-foreground">
-                Geen Komoot-inloggegevens gevonden. Stel je gebruikersnaam en wachtwoord in via de instellingen.
+                No Komoot credentials found. Set your username and password in Settings.
               </p>
               <Button variant="outline" className="font-mono uppercase gap-2" onClick={() => { onOpenChange(false); onOpenSettings(); }}>
-                <Settings className="h-4 w-4" /> Naar instellingen
+                <Settings className="h-4 w-4" /> Go to Settings
               </Button>
             </div>
           )}
@@ -163,10 +162,10 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
             <div className="flex flex-col items-center justify-center h-48 gap-4 px-8 text-center">
               <AlertCircle className="h-8 w-8 text-destructive" />
               <p className="font-mono text-sm text-muted-foreground">
-                Inloggen bij Komoot mislukt. Controleer je gebruikersnaam en wachtwoord in de instellingen.
+                Komoot login failed. Check your username and password in Settings.
               </p>
               <Button variant="outline" className="font-mono uppercase gap-2" onClick={() => { onOpenChange(false); onOpenSettings(); }}>
-                <Settings className="h-4 w-4" /> Instellingen controleren
+                <Settings className="h-4 w-4" /> Check Settings
               </Button>
             </div>
           )}
@@ -176,7 +175,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
             <div className="flex flex-col items-center justify-center h-48 gap-4 px-8 text-center">
               <AlertCircle className="h-8 w-8 text-destructive" />
               <p className="font-mono text-sm text-muted-foreground">{errorMsg}</p>
-              <Button variant="outline" className="font-mono uppercase" onClick={load}>Opnieuw proberen</Button>
+              <Button variant="outline" className="font-mono uppercase" onClick={load}>Retry</Button>
             </div>
           )}
 
@@ -185,7 +184,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
             <div className="divide-y divide-border">
               {tours.length === 0 && (
                 <div className="py-16 text-center">
-                  <p className="font-mono text-sm text-muted-foreground">Geen opgenomen routes gevonden op Komoot.</p>
+                  <p className="font-mono text-sm text-muted-foreground">No recorded routes found on Komoot.</p>
                 </div>
               )}
               {tours.map(tour => {
@@ -232,7 +231,7 @@ export function KomootImportDialog({ open, onOpenChange, onOpenSettings }: Props
         {(status === "ready" || status === "importing") && tours.length > 0 && (
           <div className="px-6 py-3 border-t border-border shrink-0">
             <p className="font-mono text-[10px] text-muted-foreground text-center">
-              Klik op een route om te importeren als cardio workout log
+              Click a route to import it as a cardio workout log
             </p>
           </div>
         )}

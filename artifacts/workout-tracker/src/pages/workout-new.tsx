@@ -47,6 +47,7 @@ export default function WorkoutNewPage() {
   const [duration, setDuration] = useState("");
   const [rounds, setRounds] = useState("");
   const [sport, setSport] = useState("none");
+  const [location, setLocation] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([{ name: "" }]);
   const [cfDescription, setCfDescription] = useState("");
 
@@ -77,6 +78,7 @@ export default function WorkoutNewPage() {
           rounds: rounds ? parseInt(rounds) : null,
           exercises: exercisesJson,
           sport: type === "cardio" && sport !== "none" ? sport : null,
+          location: type === "cardio" && location.trim() ? location.trim() : null,
         }
       });
       queryClient.invalidateQueries({ queryKey: getListWorkoutsQueryKey() });
@@ -96,11 +98,9 @@ export default function WorkoutNewPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div className="flex items-center gap-4">
-        <Link href="/workouts">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">New Workout</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">Create a template</p>
@@ -137,27 +137,39 @@ export default function WorkoutNewPage() {
               </Select>
             </div>
             {isCardio && (
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase tracking-wider">Sport</Label>
-                <Select value={sport} onValueChange={setSport}>
-                  <SelectTrigger className="font-mono">
-                    <SelectValue placeholder="Selecteer sport..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="font-mono">— Geen —</SelectItem>
-                    <SelectItem value="touringbicycle" className="font-mono">Toerfiets</SelectItem>
-                    <SelectItem value="racebike" className="font-mono">Racefiets</SelectItem>
-                    <SelectItem value="mtb" className="font-mono">MTB</SelectItem>
-                    <SelectItem value="e_touringbicycle" className="font-mono">E-Bike</SelectItem>
-                    <SelectItem value="e_mtb" className="font-mono">E-MTB</SelectItem>
-                    <SelectItem value="running" className="font-mono">Hardlopen</SelectItem>
-                    <SelectItem value="hiking" className="font-mono">Wandelen</SelectItem>
-                    <SelectItem value="swimming" className="font-mono">Zwemmen</SelectItem>
-                    <SelectItem value="rowing" className="font-mono">Roeien</SelectItem>
-                    <SelectItem value="other" className="font-mono">Anders</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Sport</Label>
+                  <Select value={sport} onValueChange={setSport}>
+                    <SelectTrigger className="font-mono">
+                      <SelectValue placeholder="Select sport..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="font-mono">— None —</SelectItem>
+                      <SelectItem value="touringbicycle" className="font-mono">Touring Bike</SelectItem>
+                      <SelectItem value="racebike" className="font-mono">Road Bike</SelectItem>
+                      <SelectItem value="mtb" className="font-mono">MTB</SelectItem>
+                      <SelectItem value="e_touringbicycle" className="font-mono">E-Bike</SelectItem>
+                      <SelectItem value="e_mtb" className="font-mono">E-MTB</SelectItem>
+                      <SelectItem value="running" className="font-mono">Running</SelectItem>
+                      <SelectItem value="hiking" className="font-mono">Hiking</SelectItem>
+                      <SelectItem value="swimming" className="font-mono">Swimming</SelectItem>
+                      <SelectItem value="rowing" className="font-mono">Rowing</SelectItem>
+                      <SelectItem value="other" className="font-mono">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase tracking-wider">Default location (optional)</Label>
+                  <Input
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    placeholder="e.g. Central Park, New York"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground font-mono">Used when logging to automatically fetch weather data.</p>
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label className="font-mono text-xs uppercase tracking-wider">Description (optional)</Label>

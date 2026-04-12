@@ -66,7 +66,6 @@ export const DeleteExerciseParams = zod.object({
  */
 export const ListWorkoutsResponseItem = zod.object({
   id: zod.number(),
-  userId: zod.number().nullish(),
   name: zod.string(),
   type: zod.string().describe("bodybuilding | amrap | emom | rft | cardio"),
   description: zod.string().nullish(),
@@ -78,7 +77,11 @@ export const ListWorkoutsResponseItem = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
-  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
+  sport: zod.string().nullish().describe("sport type for cardio workouts"),
+  location: zod
+    .string()
+    .nullish()
+    .describe("location name for cardio workouts"),
   createdAt: zod.string(),
 });
 export const ListWorkoutsResponse = zod.array(ListWorkoutsResponseItem);
@@ -94,6 +97,7 @@ export const CreateWorkoutBody = zod.object({
   rounds: zod.number().nullish(),
   exercises: zod.string(),
   sport: zod.string().nullish(),
+  location: zod.string().nullish(),
 });
 
 /**
@@ -116,7 +120,11 @@ export const GetWorkoutResponse = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
-  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
+  sport: zod.string().nullish().describe("sport type for cardio workouts"),
+  location: zod
+    .string()
+    .nullish()
+    .describe("location name for cardio workouts"),
   createdAt: zod.string(),
 });
 
@@ -135,6 +143,7 @@ export const UpdateWorkoutBody = zod.object({
   rounds: zod.number().nullish(),
   exercises: zod.string().optional(),
   sport: zod.string().nullish(),
+  location: zod.string().nullish(),
 });
 
 export const UpdateWorkoutResponse = zod.object({
@@ -150,7 +159,11 @@ export const UpdateWorkoutResponse = zod.object({
   exercises: zod
     .string()
     .describe("JSON string of workout exercises\/movements"),
-  sport: zod.string().nullish().describe("sport tag for cardio workouts"),
+  sport: zod.string().nullish().describe("sport type for cardio workouts"),
+  location: zod
+    .string()
+    .nullish()
+    .describe("location name for cardio workouts"),
   createdAt: zod.string(),
 });
 
@@ -177,8 +190,6 @@ export const ListScheduledWorkoutsResponseItem = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
-  isPublic: zod.boolean().optional(),
-  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 export const ListScheduledWorkoutsResponse = zod.array(
@@ -194,7 +205,6 @@ export const CreateScheduledWorkoutBody = zod.object({
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
-  isPublic: zod.boolean().optional(),
 });
 
 /**
@@ -212,8 +222,6 @@ export const GetScheduledWorkoutResponse = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
-  isPublic: zod.boolean().optional(),
-  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 
@@ -231,7 +239,6 @@ export const UpdateScheduledWorkoutBody = zod.object({
   scheduledDate: zod.string().optional(),
   notes: zod.string().nullish(),
   completed: zod.boolean().optional(),
-  isPublic: zod.boolean().optional(),
 });
 
 export const UpdateScheduledWorkoutResponse = zod.object({
@@ -242,8 +249,6 @@ export const UpdateScheduledWorkoutResponse = zod.object({
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
   completed: zod.boolean(),
-  isPublic: zod.boolean().optional(),
-  userId: zod.number().nullish(),
   createdAt: zod.string(),
 });
 
@@ -272,6 +277,14 @@ export const ListWorkoutLogsResponseItem = zod.object({
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
   sport: zod.string().nullish(),
+  location: zod
+    .string()
+    .nullish()
+    .describe("confirmed location name from OpenStreetMap"),
+  weatherJson: zod
+    .string()
+    .nullish()
+    .describe("JSON string with weather data at time of workout"),
   createdAt: zod.string(),
 });
 export const ListWorkoutLogsResponse = zod.array(ListWorkoutLogsResponseItem);
@@ -288,6 +301,9 @@ export const CreateWorkoutLogBody = zod.object({
   notes: zod.string().nullish(),
   results: zod.string(),
   rating: zod.number().nullish(),
+  sport: zod.string().nullish(),
+  location: zod.string().nullish(),
+  weatherJson: zod.string().nullish(),
 });
 
 /**
@@ -312,6 +328,14 @@ export const GetWorkoutLogResponse = zod.object({
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
   sport: zod.string().nullish(),
+  location: zod
+    .string()
+    .nullish()
+    .describe("confirmed location name from OpenStreetMap"),
+  weatherJson: zod
+    .string()
+    .nullish()
+    .describe("JSON string with weather data at time of workout"),
   createdAt: zod.string(),
 });
 
@@ -330,6 +354,9 @@ export const UpdateWorkoutLogBody = zod.object({
   notes: zod.string().nullish(),
   results: zod.string().optional(),
   rating: zod.number().nullish(),
+  sport: zod.string().nullish(),
+  location: zod.string().nullish(),
+  weatherJson: zod.string().nullish(),
 });
 
 export const UpdateWorkoutLogResponse = zod.object({
@@ -347,6 +374,14 @@ export const UpdateWorkoutLogResponse = zod.object({
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
   sport: zod.string().nullish(),
+  location: zod
+    .string()
+    .nullish()
+    .describe("confirmed location name from OpenStreetMap"),
+  weatherJson: zod
+    .string()
+    .nullish()
+    .describe("JSON string with weather data at time of workout"),
   createdAt: zod.string(),
 });
 
@@ -392,6 +427,15 @@ export const GetRecentLogsResponseItem = zod.object({
       "JSON string of results (sets\/reps\/weights or time\/distance or rounds completed)",
     ),
   rating: zod.number().nullish().describe("1-5 rating"),
+  sport: zod.string().nullish(),
+  location: zod
+    .string()
+    .nullish()
+    .describe("confirmed location name from OpenStreetMap"),
+  weatherJson: zod
+    .string()
+    .nullish()
+    .describe("JSON string with weather data at time of workout"),
   createdAt: zod.string(),
 });
 export const GetRecentLogsResponse = zod.array(GetRecentLogsResponseItem);

@@ -47,8 +47,16 @@ export interface Workout {
   rounds?: number | null;
   /** JSON string of workout exercises/movements */
   exercises: string;
-  /** sport tag for cardio workouts @nullable */
+  /**
+   * sport type for cardio workouts
+   * @nullable
+   */
   sport?: string | null;
+  /**
+   * location name for cardio workouts
+   * @nullable
+   */
+  location?: string | null;
   createdAt: string;
 }
 
@@ -64,6 +72,8 @@ export interface CreateWorkoutBody {
   exercises: string;
   /** @nullable */
   sport?: string | null;
+  /** @nullable */
+  location?: string | null;
 }
 
 export interface UpdateWorkoutBody {
@@ -78,6 +88,8 @@ export interface UpdateWorkoutBody {
   exercises?: string;
   /** @nullable */
   sport?: string | null;
+  /** @nullable */
+  location?: string | null;
 }
 
 export interface ScheduledWorkout {
@@ -90,9 +102,6 @@ export interface ScheduledWorkout {
   /** @nullable */
   notes?: string | null;
   completed: boolean;
-  isPublic?: boolean;
-  /** @nullable */
-  userId?: number | null;
   createdAt: string;
 }
 
@@ -104,7 +113,6 @@ export interface CreateScheduledWorkoutBody {
   scheduledDate: string;
   /** @nullable */
   notes?: string | null;
-  isPublic?: boolean;
 }
 
 export interface UpdateScheduledWorkoutBody {
@@ -116,7 +124,6 @@ export interface UpdateScheduledWorkoutBody {
   /** @nullable */
   notes?: string | null;
   completed?: boolean;
-  isPublic?: boolean;
 }
 
 export interface WorkoutLog {
@@ -139,6 +146,16 @@ export interface WorkoutLog {
   rating?: number | null;
   /** @nullable */
   sport?: string | null;
+  /**
+   * confirmed location name from OpenStreetMap
+   * @nullable
+   */
+  location?: string | null;
+  /**
+   * JSON string with weather data at time of workout
+   * @nullable
+   */
+  weatherJson?: string | null;
   createdAt: string;
 }
 
@@ -155,6 +172,12 @@ export interface CreateWorkoutLogBody {
   results: string;
   /** @nullable */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  weatherJson?: string | null;
 }
 
 export interface UpdateWorkoutLogBody {
@@ -168,6 +191,12 @@ export interface UpdateWorkoutLogBody {
   results?: string;
   /** @nullable */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  weatherJson?: string | null;
 }
 
 export type DashboardSummaryWorkoutsByType = {

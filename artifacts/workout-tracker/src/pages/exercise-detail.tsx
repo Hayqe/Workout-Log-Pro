@@ -1,4 +1,4 @@
-import { useParams, Link } from "wouter";
+import { useParams } from "wouter";
 import { useListExercises, getListExercisesQueryKey, useListWorkoutLogs, getListWorkoutLogsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,9 +93,9 @@ export default function ExerciseDetailPage() {
   if (!exercise) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
-        <Link href="/exercises">
-          <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div className="py-16 text-center border border-dashed border-border rounded-md">
           <Dumbbell className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground font-mono text-sm">Exercise not found.</p>
@@ -107,9 +107,9 @@ export default function ExerciseDetailPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div className="flex items-center gap-4">
-        <Link href="/exercises">
-          <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">{exercise.name}</h1>

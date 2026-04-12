@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
-import { useListExercises, getListExercisesQueryKey, useCreateExercise, useDeleteExercise, useListWorkoutLogs, getListWorkoutLogsQueryKey, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
+import { useListExercises, getListExercisesQueryKey, useDeleteExercise, useListWorkoutLogs, getListWorkoutLogsQueryKey, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { NewExerciseDialog } from "@/components/ui/new-exercise-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Trash2, Plus, Dumbbell, Search, TrendingUp, ChevronRight, Lock } from "lucide-react";
@@ -126,7 +125,6 @@ export default function ExercisesPage() {
   const { data: exercises, isLoading } = useListExercises({ query: { queryKey: getListExercisesQueryKey() } });
   const { data: logs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
-  const createExercise = useCreateExercise();
   const deleteExercise = useDeleteExercise();
   const queryClient = useQueryClient();
 
@@ -148,10 +146,6 @@ export default function ExercisesPage() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newMuscle, setNewMuscle] = useState("Chest");
-  const [newCategory, setNewCategory] = useState("bodybuilding");
-  const [newDesc, setNewDesc] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const filtered = (exercises || []).filter(ex => {
@@ -159,17 +153,6 @@ export default function ExercisesPage() {
     const matchCat = filterCategory === "all" || ex.category === filterCategory;
     return matchSearch && matchCat;
   });
-
-  const handleCreate = async () => {
-    if (!newName) return;
-    await createExercise.mutateAsync({
-      data: { name: newName, muscleGroup: newMuscle, category: newCategory, description: newDesc || null }
-    });
-    queryClient.invalidateQueries({ queryKey: getListExercisesQueryKey() });
-    setNewName("");
-    setNewDesc("");
-    setDialogOpen(false);
-  };
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -193,43 +176,10 @@ export default function ExercisesPage() {
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Exercises</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">{exercises?.length || 0} in library</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="font-mono uppercase tracking-tight gap-2"><Plus className="h-4 w-4" /> Add</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="font-mono uppercase tracking-tight">New Exercise</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Name</Label>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Incline Bench Press" className="font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Muscle Group</Label>
-                <Select value={newMuscle} onValueChange={setNewMuscle}>
-                  <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MUSCLE_GROUPS.map(m => <SelectItem key={m} value={m} className="font-mono">{m}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Category</Label>
-                <Select value={newCategory} onValueChange={setNewCategory}>
-                  <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c} className="font-mono capitalize">{c}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Description (optional)</Label>
-                <Input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Brief description..." className="font-mono" />
-              </div>
-              <Button onClick={handleCreate} disabled={!newName || createExercise.isPending} className="w-full font-mono uppercase tracking-tight">
-                {createExercise.isPending ? "Adding..." : "Add Exercise"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button className="font-mono uppercase tracking-tight gap-2" onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> Add
+        </Button>
+        <NewExerciseDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
 
       <div className="flex gap-3">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListWorkoutLogs, getListWorkoutLogsQueryKey, useDeleteWorkoutLog } from "@workspace/api-client-react";
+import { useListWorkoutLogs, getListWorkoutLogsQueryKey, useDeleteWorkoutLog, useListWorkouts, getListWorkoutsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,52 @@ import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Plus, ChevronRight, Trash2, Clock, Star, History, Bike, Heart, Mountain, Timer } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Pencil, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
-function LogDetail({ log }: { log: any }) {
+function kmhToBft(kmh: number): number {
+  const thresholds = [1, 5.5, 11.9, 19.7, 28.7, 38.8, 49.9, 61.8, 74.6, 87.4, 102.4, 117.4];
+  return thresholds.findIndex(t => kmh < t) === -1 ? 12 : thresholds.findIndex(t => kmh < t);
+}
+
+function degToCompass(deg: number): string {
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+function wmoLabel(code: number | null): { emoji: string; label: string } {
+  if (code === null) return { emoji: "❓", label: "Unknown" };
+  if (code === 0) return { emoji: "☀️", label: "Clear" };
+  if (code <= 2) return { emoji: "🌤️", label: "Partly cloudy" };
+  if (code === 3) return { emoji: "☁️", label: "Overcast" };
+  if (code <= 49) return { emoji: "🌫️", label: "Fog" };
+  if (code <= 59) return { emoji: "🌧️", label: "Drizzle" };
+  if (code <= 69) return { emoji: "🌧️", label: "Rain" };
+  if (code <= 79) return { emoji: "❄️", label: "Snow" };
+  if (code <= 82) return { emoji: "🌦️", label: "Rain showers" };
+  if (code <= 84) return { emoji: "🌨️", label: "Hail showers" };
+  if (code <= 99) return { emoji: "⛈️", label: "Thunderstorm" };
+  return { emoji: "🌡️", label: `Code ${code}` };
+}
+
+function LogDetail({ log, workout }: { log: any; workout?: any }) {
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
+
+  // Whiteboard freeText: prefer stored in log results, fall back to linked template
+  let templateFreeText: string | null = null;
+  if (workout?.exercises) {
+    try {
+      const parsed = JSON.parse(workout.exercises);
+      if (parsed?.freeText) templateFreeText = parsed.freeText;
+    } catch {}
+  }
+  const cfWhiteboard: string | null = results?.freeText ?? templateFreeText;
+
+  let weather: { temp?: number | null; tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; winddir?: number | null; weathercode?: number | null } | null = null;
+  if (log.weatherJson) {
+    try { weather = JSON.parse(log.weatherJson); } catch {}
+  }
 
   const isBb = log.workoutType === "bodybuilding";
   const isCf = ["amrap", "emom", "rft"].includes(log.workoutType);
@@ -57,6 +97,14 @@ function LogDetail({ log }: { log: any }) {
         </div>
       )}
 
+      {/* CrossFit whiteboard */}
+      {isCf && cfWhiteboard && (
+        <div className="bg-muted/20 rounded border border-border p-3">
+          <p className="font-mono text-[10px] uppercase text-muted-foreground mb-2">Whiteboard</p>
+          <pre className="font-mono text-sm text-foreground whitespace-pre-wrap leading-relaxed">{cfWhiteboard}</pre>
+        </div>
+      )}
+
       {/* CrossFit */}
       {isCf && (
         <div className="grid grid-cols-2 gap-3 font-mono">
@@ -89,29 +137,79 @@ function LogDetail({ log }: { log: any }) {
 
       {/* Cardio */}
       {isCardio && (
-        <div className="grid grid-cols-2 gap-3 font-mono">
-          {results.distance != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Bike className="h-3 w-3" /> Distance</div>
-              <p className="text-2xl font-black text-primary">{results.distance}<span className="text-sm ml-1">km</span></p>
-            </div>
-          )}
-          {results.duration != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
-              <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
-            </div>
-          )}
-          {results.avgHeartRate != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Heart className="h-3 w-3" /> Avg HR</div>
-              <p className="text-2xl font-black">{results.avgHeartRate}<span className="text-sm ml-1">bpm</span></p>
-            </div>
-          )}
-          {results.elevationGain != null && (
-            <div className="bg-muted/30 rounded p-3">
-              <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Mountain className="h-3 w-3" /> Elevation</div>
-              <p className="text-2xl font-black">{results.elevationGain}<span className="text-sm ml-1">m</span></p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 font-mono">
+            {results.distance != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Bike className="h-3 w-3" /> Distance</div>
+                <p className="text-2xl font-black text-primary">{results.distance}<span className="text-sm ml-1">km</span></p>
+              </div>
+            )}
+            {results.duration != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
+                <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
+              </div>
+            )}
+            {results.avgHeartRate != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Heart className="h-3 w-3" /> Avg HR</div>
+                <p className="text-2xl font-black">{results.avgHeartRate}<span className="text-sm ml-1">bpm</span></p>
+              </div>
+            )}
+            {results.elevationGain != null && (
+              <div className="bg-muted/30 rounded p-3">
+                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Mountain className="h-3 w-3" /> Elevation</div>
+                <p className="text-2xl font-black">{results.elevationGain}<span className="text-sm ml-1">m</span></p>
+              </div>
+            )}
+          </div>
+
+          {/* Location + Weather */}
+          {(log.location || weather) && (
+            <div className="bg-muted/20 rounded border border-border p-3 space-y-2">
+              {log.location && (
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="font-mono text-xs text-foreground leading-snug">{log.location}</p>
+                </div>
+              )}
+              {weather && (
+                <div className="flex flex-wrap items-center gap-3 font-mono text-xs">
+                  {weather.weathercode != null && (
+                    <span className="flex items-center gap-1 font-bold">
+                      <span>{wmoLabel(weather.weathercode ?? null).emoji}</span>
+                      <span>{wmoLabel(weather.weathercode ?? null).label}</span>
+                    </span>
+                  )}
+                  {weather.temp != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Thermometer className="h-3 w-3" />
+                      <span className="font-bold text-foreground">{weather.temp}°C</span>
+                    </span>
+                  )}
+                  {weather.temp == null && (weather.tempMin != null || weather.tempMax != null) && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Thermometer className="h-3 w-3" />
+                      {weather.tempMin != null && <span className="text-blue-400">{weather.tempMin}°</span>}
+                      {weather.tempMin != null && weather.tempMax != null && <span>–</span>}
+                      {weather.tempMax != null && <span className="text-red-400">{weather.tempMax}°C</span>}
+                    </span>
+                  )}
+                  {weather.windspeed != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Wind className="h-3 w-3" />
+                      {kmhToBft(weather.windspeed)} Bft
+                      {weather.winddir != null && <span>({degToCompass(weather.winddir)})</span>}
+                    </span>
+                  )}
+                  {weather.precipitation != null && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Droplets className="h-3 w-3" />{weather.precipitation} mm
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -130,10 +228,12 @@ function LogDetail({ log }: { log: any }) {
 
 export default function LogListPage() {
   const { data: logs, isLoading } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
+  const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const deleteLog = useDeleteWorkoutLog();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  const workoutById = (workouts ?? []).reduce<Record<number, any>>((acc, w) => { acc[w.id] = w; return acc; }, {});
   const sortedLogs = [...(logs || [])].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
@@ -205,6 +305,16 @@ export default function LogListPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Link href={`/log/${log.id}/edit`} onClick={e => e.stopPropagation()}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         type="button"
                         variant="ghost"
@@ -219,7 +329,7 @@ export default function LogListPage() {
                   </CardContent>
                 </div>
 
-                {isOpen && <LogDetail log={log} />}
+                {isOpen && <LogDetail log={log} workout={log.workoutId ? workoutById[log.workoutId] : undefined} />}
               </Card>
             );
           })}
