@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, Clock, Star, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
 function degToCompass(deg: number): string {
@@ -99,9 +99,16 @@ export default function LogDetailPage() {
             <p className="text-muted-foreground font-mono text-sm">{format(new Date(log.loggedAt), "EEEE, MMMM d yyyy — HH:mm")}</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleDelete}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Link href={`/log/${id}/edit`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4">

@@ -13,6 +13,7 @@ import CalendarPage from "@/pages/calendar";
 import LogListPage from "@/pages/log-list";
 import LogNewPage from "@/pages/log-new";
 import LogDetailPage from "@/pages/log-detail";
+import LogEditPage from "@/pages/log-edit";
 import ExercisesPage from "@/pages/exercises";
 import ExerciseDetailPage from "@/pages/exercise-detail";
 import LoginPage from "@/pages/login";
@@ -69,6 +70,7 @@ function AppRoutes() {
         <Route path="/calendar" component={CalendarPage} />
 
         <Route path="/log/new" component={LogNewPage} />
+        <Route path="/log/:id/edit" component={LogEditPage} />
         <Route path="/log/:id" component={LogDetailPage} />
         <Route path="/log" component={LogListPage} />
 
