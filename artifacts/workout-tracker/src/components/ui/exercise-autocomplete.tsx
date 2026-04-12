@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useListExercises, getListExercisesQueryKey, useCreateExercise } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Check } from "lucide-react";
+import { useListExercises, getListExercisesQueryKey } from "@workspace/api-client-react";
+import { NewExerciseDialog } from "@/components/ui/new-exercise-dialog";
+import { Plus } from "lucide-react";
 
 type Props = {
   value: string;
@@ -14,11 +14,10 @@ type Props = {
 export function ExerciseAutocomplete({ value, onChange, placeholder = "Exercise name", className = "", category = "bodybuilding" }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
 
   const { data: exercises } = useListExercises({ query: { queryKey: getListExercisesQueryKey() } });
-  const createExercise = useCreateExercise();
 
   useEffect(() => { setQuery(value); }, [value]);
 
@@ -45,20 +44,9 @@ export function ExerciseAutocomplete({ value, onChange, placeholder = "Exercise 
     setOpen(false);
   };
 
-  const handleQuickAdd = async () => {
-    if (!query.trim()) return;
-    const muscles = { bodybuilding: "Full Body", crossfit: "Full Body", cardio: "Cardio" };
-    await createExercise.mutateAsync({
-      data: {
-        name: query.trim(),
-        muscleGroup: muscles[category as keyof typeof muscles] || "Full Body",
-        category,
-        description: null,
-      }
-    });
-    queryClient.invalidateQueries({ queryKey: getListExercisesQueryKey() });
-    onChange(query.trim());
+  const handleOpenDialog = () => {
     setOpen(false);
+    setDialogOpen(true);
   };
 
   return (
@@ -91,7 +79,7 @@ export function ExerciseAutocomplete({ value, onChange, placeholder = "Exercise 
           {showQuickAdd && (
             <button
               type="button"
-              onMouseDown={e => { e.preventDefault(); handleQuickAdd(); }}
+              onMouseDown={e => { e.preventDefault(); handleOpenDialog(); }}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-primary/10 transition-colors text-left border-t border-border"
             >
               <Plus className="h-3 w-3 text-primary shrink-0" />
@@ -100,6 +88,17 @@ export function ExerciseAutocomplete({ value, onChange, placeholder = "Exercise 
           )}
         </div>
       )}
+
+      <NewExerciseDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        initialName={query.trim()}
+        initialCategory={category}
+        onCreated={name => {
+          setQuery(name);
+          onChange(name);
+        }}
+      />
     </div>
   );
 }
