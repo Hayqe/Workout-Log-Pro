@@ -148,7 +148,7 @@ function LogDetail({ log, workout }: { log: any; workout?: any }) {
             {results.duration != null && (
               <div className="bg-muted/30 rounded p-3">
                 <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
-                <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
+                <p className="text-2xl font-black">{Math.floor(results.duration)}<span className="text-sm">:</span><span>{String(Math.round((results.duration - Math.floor(results.duration)) * 60)).padStart(2, '0')}</span><span className="text-sm ml-1">min</span></p>
               </div>
             )}
             {results.avgHeartRate != null && (

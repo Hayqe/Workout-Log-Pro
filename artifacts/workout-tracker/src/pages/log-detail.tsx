@@ -250,7 +250,7 @@ export default function LogDetailPage() {
             {results.duration != null && (
               <div>
                 <div className="flex items-center gap-1 text-muted-foreground text-xs uppercase mb-1"><Timer className="h-3 w-3" /> Duration</div>
-                <p className="text-2xl font-black">{results.duration}<span className="text-sm ml-1">min</span></p>
+                <p className="text-2xl font-black">{Math.floor(results.duration)}<span className="text-sm ml-1">:</span><span>{String(Math.round((results.duration - Math.floor(results.duration)) * 60)).padStart(2, '0')}</span><span className="text-sm ml-1">min</span></p>
               </div>
             )}
             {results.avgHeartRate != null && (

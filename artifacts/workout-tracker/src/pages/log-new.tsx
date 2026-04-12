@@ -472,6 +472,7 @@ export default function LogNewPage() {
   const [rftTime, setRftTime] = useState("");
   const [cardioDistance, setCardioDistance] = useState("");
   const [cardioDuration, setCardioDuration] = useState("");
+  const [cardioDurationSec, setCardioDurationSec] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
   const [cardioExercises, setCardioExercises] = useState<any[]>(() => {
@@ -611,7 +612,7 @@ export default function LogNewPage() {
     if (type === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0, freeText: cfText || undefined });
     if (type === "emom") return JSON.stringify({ score: emomScore, freeText: cfText || undefined });
     if (type === "rft") return JSON.stringify({ time: rftTime, freeText: cfText || undefined });
-    if (type === "cardio") return JSON.stringify({ distance: parseFloat(cardioDistance) || 0, duration: parseInt(cardioDuration) || 0, avgHeartRate: parseInt(cardioHR) || null, elevationGain: parseInt(cardioElevation) || null });
+    if (type === "cardio") return JSON.stringify({ distance: parseFloat(cardioDistance) || 0, duration: (parseInt(cardioDuration) || 0) + (parseInt(cardioDurationSec) || 0) / 60, avgHeartRate: parseInt(cardioHR) || null, elevationGain: parseInt(cardioElevation) || null });
     return "{}";
   };
 
@@ -970,8 +971,12 @@ export default function LogNewPage() {
                   <Input type="number" value={cardioDistance} onChange={e => setCardioDistance(e.target.value)} placeholder="5.0" className="font-mono" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase">Duration (min)</Label>
-                  <Input type="number" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
+                  <Label className="font-mono text-xs uppercase">Duration (min : sec)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" min="0" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
+                    <span className="font-mono text-muted-foreground font-bold">:</span>
+                    <Input type="number" min="0" max="59" value={cardioDurationSec} onChange={e => setCardioDurationSec(e.target.value)} placeholder="00" className="font-mono w-20" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="font-mono text-xs uppercase">Avg Heart Rate (bpm)</Label>
