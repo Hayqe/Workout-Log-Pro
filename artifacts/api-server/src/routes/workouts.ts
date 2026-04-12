@@ -17,9 +17,7 @@ import { serializeRow, serializeRows } from "../lib/serialize";
 const router: IRouter = Router();
 
 router.get("/workouts", requireAuth, async (req, res): Promise<void> => {
-  const userId = req.session.userId!;
   const workouts = await db.select().from(workoutsTable)
-    .where(eq(workoutsTable.userId, userId))
     .orderBy(workoutsTable.createdAt);
   res.json(ListWorkoutsResponse.parse(serializeRows(workouts as Record<string, unknown>[])));
 });

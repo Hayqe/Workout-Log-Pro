@@ -30,6 +30,7 @@ export interface CreateExerciseBody {
 
 export interface Workout {
   id: number;
+  userId: number;
   name: string;
   /** bodybuilding | amrap | emom | rft | cardio */
   type: string;

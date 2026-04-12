@@ -498,6 +498,8 @@ components:
       properties:
         id:
           type: integer
+        userId:
+          type: integer
         name:
           type: string
         type:
@@ -524,6 +526,7 @@ components:
           type: string
       required:
         - id
+        - userId
         - name
         - type
         - exercises
