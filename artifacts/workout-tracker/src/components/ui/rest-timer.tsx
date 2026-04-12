@@ -61,6 +61,7 @@ export function RestTimer() {
           {PRESETS.map(p => (
             <button
               key={p}
+              type="button"
               onClick={() => handleSelect(p)}
               className={`font-mono text-xs rounded px-2.5 py-1 border transition-all ${
                 selected === p
