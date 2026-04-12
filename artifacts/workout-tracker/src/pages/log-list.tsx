@@ -10,6 +10,11 @@ import { Link } from "wouter";
 import { Plus, ChevronRight, Trash2, Pencil, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
+function kmhToBft(kmh: number): number {
+  const thresholds = [1, 5.5, 11.9, 19.7, 28.7, 38.8, 49.9, 61.8, 74.6, 87.4, 102.4, 117.4];
+  return thresholds.findIndex(t => kmh < t) === -1 ? 12 : thresholds.findIndex(t => kmh < t);
+}
+
 function degToCompass(deg: number): string {
   const dirs = ["N", "NNO", "NO", "ONO", "O", "OZO", "ZO", "ZZO", "Z", "ZZW", "ZW", "WZW", "W", "WNW", "NW", "NNW"];
   return dirs[Math.round(deg / 22.5) % 16];
@@ -176,7 +181,7 @@ function LogDetail({ log }: { log: any }) {
                   {weather.windspeed != null && (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Wind className="h-3 w-3" />
-                      {weather.windspeed} km/u
+                      {kmhToBft(weather.windspeed)} Bft
                       {weather.winddir != null && <span>({degToCompass(weather.winddir)})</span>}
                     </span>
                   )}
