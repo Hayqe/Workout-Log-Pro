@@ -640,16 +640,24 @@ export default function LogNewPage() {
         : "https://api.open-meteo.com/v1/forecast";
 
       const wRes = await fetch(
-        `${baseUrl}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode&start_date=${date}&end_date=${date}&timezone=auto`
+        `${baseUrl}?latitude=${lat}&longitude=${lon}` +
+        `&hourly=temperature_2m,winddirection_10m` +
+        `&daily=precipitation_sum,windspeed_10m_max,winddirection_10m_dominant,weathercode` +
+        `&start_date=${date}&end_date=${date}&timezone=auto`
       );
       const wData = await wRes.json();
       const d = wData?.daily;
 
+      // Find temperature at the workout hour
+      const workoutHour = new Date(dateIso).getHours();
+      const hourlyTemps: number[] = wData?.hourly?.temperature_2m ?? [];
+      const temp = hourlyTemps[workoutHour] ?? null;
+
       const weather = {
-        tempMax: d?.temperature_2m_max?.[0] ?? null,
-        tempMin: d?.temperature_2m_min?.[0] ?? null,
+        temp,
         precipitation: d?.precipitation_sum?.[0] ?? null,
         windspeed: d?.windspeed_10m_max?.[0] ?? null,
+        winddir: d?.winddirection_10m_dominant?.[0] ?? null,
         weathercode: d?.weathercode?.[0] ?? null,
       };
 

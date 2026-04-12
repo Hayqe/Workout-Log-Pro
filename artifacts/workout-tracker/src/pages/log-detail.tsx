@@ -9,6 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
+function degToCompass(deg: number): string {
+  const dirs = ["N", "NNO", "NO", "ONO", "O", "OZO", "ZO", "ZZO", "Z", "ZZW", "ZW", "WZW", "W", "WNW", "NW", "NNW"];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
 /* WMO weather interpretation codes → icon + label */
 function wmoLabel(code: number | null): { emoji: string; label: string } {
   if (code === null) return { emoji: "❓", label: "Onbekend" };
@@ -59,7 +64,7 @@ export default function LogDetailPage() {
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
 
-  let weather: { tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; weathercode?: number | null } | null = null;
+  let weather: { temp?: number | null; tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; winddir?: number | null; weathercode?: number | null } | null = null;
   if (log.weatherJson) {
     try { weather = JSON.parse(log.weatherJson); } catch {}
   }
@@ -259,7 +264,13 @@ export default function LogDetailPage() {
                     <span className="font-mono text-sm font-bold text-foreground">{wmoLabel(weather.weathercode ?? null).label}</span>
                   </div>
                 )}
-                {(weather.tempMin != null || weather.tempMax != null) && (
+                {weather.temp != null && (
+                  <div className="flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono text-sm font-bold">{weather.temp}°C</span>
+                  </div>
+                )}
+                {weather.temp == null && (weather.tempMin != null || weather.tempMax != null) && (
                   <div className="flex items-center gap-2">
                     <Thermometer className="h-4 w-4 text-muted-foreground" />
                     <div className="font-mono text-sm">
@@ -272,7 +283,10 @@ export default function LogDetailPage() {
                 {weather.windspeed != null && (
                   <div className="flex items-center gap-2">
                     <Wind className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-mono text-sm">{weather.windspeed} km/u</span>
+                    <span className="font-mono text-sm">
+                      {weather.windspeed} km/u
+                      {weather.winddir != null && <span className="text-muted-foreground ml-1">({degToCompass(weather.winddir)})</span>}
+                    </span>
                   </div>
                 )}
                 {weather.precipitation != null && (
