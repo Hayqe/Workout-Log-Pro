@@ -983,14 +983,14 @@ export default function LogNewPage() {
                 </div>
               </div>
               <div className="space-y-2 pt-2 border-t border-border">
-                <Label className="font-mono text-xs uppercase tracking-wider">Locatie</Label>
+                <Label className="font-mono text-xs uppercase tracking-wider">Location</Label>
                 <Input
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  placeholder="bijv. Centrum Amsterdam"
+                  placeholder="e.g. Central Park, New York"
                   className="font-mono text-sm"
                 />
-                <p className="font-mono text-[10px] text-muted-foreground">Bij opslaan wordt automatisch het weerbericht opgehaald.</p>
+                <p className="font-mono text-[10px] text-muted-foreground">Weather will be automatically fetched on save.</p>
               </div>
             </CardContent>
           </Card>
@@ -1017,7 +1017,7 @@ export default function LogNewPage() {
             <Button type="button" variant="outline" className="font-mono uppercase tracking-tight">Cancel</Button>
           </Link>
           <Button type="submit" disabled={isSubmitting || createLog.isPending} className="font-mono uppercase tracking-tight">
-            {isSubmitting ? "Weerbericht ophalen…" : createLog.isPending ? "Saving..." : "Save Log"}
+            {isSubmitting ? "Fetching weather…" : createLog.isPending ? "Saving..." : "Save Log"}
           </Button>
         </div>
       </form>

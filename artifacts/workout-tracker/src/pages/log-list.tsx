@@ -16,22 +16,22 @@ function kmhToBft(kmh: number): number {
 }
 
 function degToCompass(deg: number): string {
-  const dirs = ["N", "NNO", "NO", "ONO", "O", "OZO", "ZO", "ZZO", "Z", "ZZW", "ZW", "WZW", "W", "WNW", "NW", "NNW"];
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
 function wmoLabel(code: number | null): { emoji: string; label: string } {
-  if (code === null) return { emoji: "❓", label: "Onbekend" };
-  if (code === 0) return { emoji: "☀️", label: "Helder" };
-  if (code <= 2) return { emoji: "🌤️", label: "Gedeeltelijk bewolkt" };
-  if (code === 3) return { emoji: "☁️", label: "Bewolkt" };
-  if (code <= 49) return { emoji: "🌫️", label: "Mist" };
-  if (code <= 59) return { emoji: "🌧️", label: "Motregen" };
-  if (code <= 69) return { emoji: "🌧️", label: "Regen" };
-  if (code <= 79) return { emoji: "❄️", label: "Sneeuw" };
-  if (code <= 82) return { emoji: "🌦️", label: "Regenbuien" };
-  if (code <= 84) return { emoji: "🌨️", label: "Hagelbuien" };
-  if (code <= 99) return { emoji: "⛈️", label: "Onweer" };
+  if (code === null) return { emoji: "❓", label: "Unknown" };
+  if (code === 0) return { emoji: "☀️", label: "Clear" };
+  if (code <= 2) return { emoji: "🌤️", label: "Partly cloudy" };
+  if (code === 3) return { emoji: "☁️", label: "Overcast" };
+  if (code <= 49) return { emoji: "🌫️", label: "Fog" };
+  if (code <= 59) return { emoji: "🌧️", label: "Drizzle" };
+  if (code <= 69) return { emoji: "🌧️", label: "Rain" };
+  if (code <= 79) return { emoji: "❄️", label: "Snow" };
+  if (code <= 82) return { emoji: "🌦️", label: "Rain showers" };
+  if (code <= 84) return { emoji: "🌨️", label: "Hail showers" };
+  if (code <= 99) return { emoji: "⛈️", label: "Thunderstorm" };
   return { emoji: "🌡️", label: `Code ${code}` };
 }
 

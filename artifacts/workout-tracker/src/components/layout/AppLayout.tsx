@@ -37,7 +37,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSettingsOpen(true)}
-            title="Instellingen"
+            title="Settings"
             className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-[10px] border border-primary/30 hover:bg-primary/30 transition-colors"
           >
             {initials}
@@ -88,7 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setSettingsOpen(true)}
-              title="Instellingen"
+              title="Settings"
               className="flex items-center gap-3 min-w-0 flex-1 rounded-md px-1 py-1 hover:bg-sidebar-accent/50 transition-colors text-left"
             >
               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-mono font-bold text-xs border border-primary/30 shrink-0">
@@ -97,7 +97,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-bold uppercase tracking-tight text-sidebar-foreground truncate">{user?.username}</span>
                 <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
-                  <Settings className="h-2.5 w-2.5" />Instellingen
+                  <Settings className="h-2.5 w-2.5" />Settings
                 </span>
               </div>
             </button>

@@ -165,29 +165,29 @@ export default function WorkoutEditPage() {
                   <Select value={sport} onValueChange={setSport}>
                     <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none" className="font-mono">— Geen —</SelectItem>
-                      <SelectItem value="touringbicycle" className="font-mono">Toerfiets</SelectItem>
-                      <SelectItem value="racebike" className="font-mono">Racefiets</SelectItem>
+                      <SelectItem value="none" className="font-mono">— None —</SelectItem>
+                      <SelectItem value="touringbicycle" className="font-mono">Touring Bike</SelectItem>
+                      <SelectItem value="racebike" className="font-mono">Road Bike</SelectItem>
                       <SelectItem value="mtb" className="font-mono">MTB</SelectItem>
                       <SelectItem value="e_touringbicycle" className="font-mono">E-Bike</SelectItem>
                       <SelectItem value="e_mtb" className="font-mono">E-MTB</SelectItem>
-                      <SelectItem value="running" className="font-mono">Hardlopen</SelectItem>
-                      <SelectItem value="hiking" className="font-mono">Wandelen</SelectItem>
-                      <SelectItem value="swimming" className="font-mono">Zwemmen</SelectItem>
-                      <SelectItem value="rowing" className="font-mono">Roeien</SelectItem>
-                      <SelectItem value="other" className="font-mono">Anders</SelectItem>
+                      <SelectItem value="running" className="font-mono">Running</SelectItem>
+                      <SelectItem value="hiking" className="font-mono">Hiking</SelectItem>
+                      <SelectItem value="swimming" className="font-mono">Swimming</SelectItem>
+                      <SelectItem value="rowing" className="font-mono">Rowing</SelectItem>
+                      <SelectItem value="other" className="font-mono">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider">Standaard locatie (optioneel)</Label>
+                  <Label className="font-mono text-xs uppercase tracking-wider">Default location (optional)</Label>
                   <Input
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    placeholder="bijv. Centrum Amsterdam"
+                    placeholder="e.g. Central Park, New York"
                     className="font-mono text-sm"
                   />
-                  <p className="text-xs text-muted-foreground font-mono">Wordt gebruikt bij het loggen voor automatisch weerbericht ophalen.</p>
+                  <p className="text-xs text-muted-foreground font-mono">Used when logging to automatically fetch weather data.</p>
                 </div>
               </>
             )}
