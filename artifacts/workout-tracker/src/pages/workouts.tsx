@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { nl } from "date-fns/locale";
 import { useAuth } from "@/contexts/auth-context";
 import { KomootImportDialog } from "@/components/komoot-import-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
@@ -100,35 +99,38 @@ function WorkoutHistory({ logs }: { logs: WorkoutLog[] }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 mb-2">
         <History className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Geschiedenis</span>
+        <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">History</span>
         <span className="font-mono text-[10px] text-muted-foreground/50">({logs.length} {logs.length === 1 ? "log" : "logs"})</span>
       </div>
       {recent.map(log => (
-        <div key={log.id} className="flex items-center gap-3 py-1.5 px-3 rounded-sm bg-muted/20 border border-border/40">
-          <span className="font-mono text-[11px] text-muted-foreground shrink-0 w-20">
-            {format(parseISO(log.loggedAt), "d MMM yyyy", { locale: nl })}
-          </span>
-          <div className="flex-1 min-w-0 flex items-center gap-3">
-            {log.durationMinutes && (
-              <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground shrink-0">
-                <Timer className="h-3 w-3" />{log.durationMinutes}m
+        <Link key={log.id} href={`/log/${log.id}`}>
+          <div className="flex items-center gap-3 py-1.5 px-3 rounded-sm bg-muted/20 border border-border/40 hover:border-primary/30 hover:bg-muted/40 transition-colors cursor-pointer">
+            <span className="font-mono text-[11px] text-muted-foreground shrink-0 w-20">
+              {format(parseISO(log.loggedAt), "d MMM yyyy")}
+            </span>
+            <div className="flex-1 min-w-0 flex items-center gap-3">
+              {log.durationMinutes && (
+                <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground shrink-0">
+                  <Timer className="h-3 w-3" />{log.durationMinutes}m
+                </span>
+              )}
+              <LogResultSummary log={log} />
+              {log.notes && (
+                <span className="text-[11px] font-mono text-muted-foreground/60 truncate hidden sm:block">{log.notes}</span>
+              )}
+            </div>
+            {log.rating != null && (
+              <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 shrink-0">
+                <Star className="h-3 w-3 fill-yellow-400" />{log.rating}
               </span>
             )}
-            <LogResultSummary log={log} />
-            {log.notes && (
-              <span className="text-[11px] font-mono text-muted-foreground/60 truncate hidden sm:block">{log.notes}</span>
-            )}
+            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
           </div>
-          {log.rating != null && (
-            <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 shrink-0">
-              <Star className="h-3 w-3 fill-yellow-400" />{log.rating}
-            </span>
-          )}
-        </div>
+        </Link>
       ))}
       {logs.length > 8 && (
         <p className="font-mono text-[10px] text-muted-foreground/50 text-right pt-1">
-          +{logs.length - 8} oudere logs
+          +{logs.length - 8} older logs
         </p>
       )}
     </div>
