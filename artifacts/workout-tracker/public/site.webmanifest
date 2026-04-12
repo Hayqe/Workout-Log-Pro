@@ -1,0 +1,23 @@
+{
+  "name": "Stroxx",
+  "short_name": "Stroxx",
+  "description": "Your personal workout tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#3E322A",
+  "theme_color": "#3E322A",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

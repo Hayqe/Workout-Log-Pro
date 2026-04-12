@@ -13,10 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-context";
 import { KomootImportDialog } from "@/components/komoot-import-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { SportTag } from "@/components/ui/sport-tag";
+import { useAuth } from "@/contexts/auth-context";
 
 function parseExercises(raw: string) {
   try { return JSON.parse(raw); } catch { return null; }

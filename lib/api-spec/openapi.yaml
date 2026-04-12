@@ -498,6 +498,8 @@ components:
       properties:
         id:
           type: integer
+        userId:
+          type: ["integer", "null"]
         name:
           type: string
         type:
