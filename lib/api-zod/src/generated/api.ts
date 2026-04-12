@@ -66,7 +66,7 @@ export const DeleteExerciseParams = zod.object({
  */
 export const ListWorkoutsResponseItem = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   type: zod.string().describe("bodybuilding | amrap | emom | rft | cardio"),
   description: zod.string().nullish(),
@@ -110,7 +110,7 @@ export const GetWorkoutParams = zod.object({
 
 export const GetWorkoutResponse = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   type: zod.string().describe("bodybuilding | amrap | emom | rft | cardio"),
   description: zod.string().nullish(),
@@ -150,7 +150,7 @@ export const UpdateWorkoutBody = zod.object({
 
 export const UpdateWorkoutResponse = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.number().nullish(),
   name: zod.string(),
   type: zod.string().describe("bodybuilding | amrap | emom | rft | cardio"),
   description: zod.string().nullish(),
