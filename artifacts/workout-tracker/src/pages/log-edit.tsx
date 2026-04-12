@@ -102,6 +102,7 @@ export default function LogEditPage() {
   const [rftTime, setRftTime] = useState("");
   const [cardioDistance, setCardioDistance] = useState("");
   const [cardioDuration, setCardioDuration] = useState("");
+  const [cardioDurationSec, setCardioDurationSec] = useState("");
   const [cardioHR, setCardioHR] = useState("");
   const [cardioElevation, setCardioElevation] = useState("");
   const [cfText, setCfText] = useState("");
@@ -141,7 +142,12 @@ export default function LogEditPage() {
         setRftTime(r.time ?? "");
       } else if (log.workoutType === "cardio") {
         setCardioDistance(r.distance != null ? String(r.distance) : "");
-        setCardioDuration(r.duration != null ? String(r.duration) : "");
+        if (r.duration != null) {
+          const totalMins = r.duration as number;
+          setCardioDuration(String(Math.floor(totalMins)));
+          const secs = Math.round((totalMins - Math.floor(totalMins)) * 60);
+          setCardioDurationSec(secs > 0 ? String(secs) : "");
+        }
         setCardioHR(r.avgHeartRate != null ? String(r.avgHeartRate) : "");
         setCardioElevation(r.elevationGain != null ? String(r.elevationGain) : "");
       }
@@ -162,7 +168,7 @@ export default function LogEditPage() {
     if (workoutType === "rft") return JSON.stringify({ time: rftTime, freeText: cfText || undefined });
     if (workoutType === "cardio") return JSON.stringify({
       distance: parseFloat(cardioDistance) || 0,
-      duration: parseInt(cardioDuration) || 0,
+      duration: (parseInt(cardioDuration) || 0) + (parseInt(cardioDurationSec) || 0) / 60,
       avgHeartRate: parseInt(cardioHR) || null,
       elevationGain: parseInt(cardioElevation) || null,
     });
@@ -420,8 +426,12 @@ export default function LogEditPage() {
                   <Input type="number" value={cardioDistance} onChange={e => setCardioDistance(e.target.value)} placeholder="5.0" className="font-mono" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase">Duration (min)</Label>
-                  <Input type="number" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
+                  <Label className="font-mono text-xs uppercase">Duration (min : sec)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" min="0" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
+                    <span className="font-mono text-muted-foreground font-bold">:</span>
+                    <Input type="number" min="0" max="59" value={cardioDurationSec} onChange={e => setCardioDurationSec(e.target.value)} placeholder="00" className="font-mono w-20" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="font-mono text-xs uppercase">Avg Heart Rate (bpm)</Label>
