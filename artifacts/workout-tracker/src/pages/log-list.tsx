@@ -7,7 +7,7 @@ import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Plus, ChevronRight, Trash2, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Pencil, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
 function degToCompass(deg: number): string {
@@ -280,6 +280,16 @@ export default function LogListPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Link href={`/log/${log.id}/edit`} onClick={e => e.stopPropagation()}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         type="button"
                         variant="ghost"
