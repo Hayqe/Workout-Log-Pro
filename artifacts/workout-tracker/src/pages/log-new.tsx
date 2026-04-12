@@ -716,9 +716,9 @@ export default function LogNewPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div className="flex items-center gap-4">
-        <Link href="/log">
-          <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Log Session</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">Record your performance</p>

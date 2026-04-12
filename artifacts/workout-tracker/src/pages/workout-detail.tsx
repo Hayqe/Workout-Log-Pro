@@ -57,11 +57,9 @@ export default function WorkoutDetailPage() {
     <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/workouts">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl md:text-3xl font-mono font-black tracking-tighter uppercase text-foreground">{workout.name}</h1>
