@@ -11,6 +11,7 @@ export const workoutsTable = pgTable("workouts", {
   rounds: integer("rounds"),
   exercises: text("exercises").notNull().default("[]"),
   sport: text("sport"),
+  location: text("location"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   userId: integer("user_id"),
 });

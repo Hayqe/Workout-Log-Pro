@@ -19,4 +19,10 @@ export interface CreateWorkoutLogBody {
   results: string;
   /** @nullable */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  weatherJson?: string | null;
 }

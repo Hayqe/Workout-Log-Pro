@@ -25,5 +25,15 @@ export interface Workout {
   rounds?: number | null;
   /** JSON string of workout exercises/movements */
   exercises: string;
+  /**
+   * sport type for cardio workouts
+   * @nullable
+   */
+  sport?: string | null;
+  /**
+   * location name for cardio workouts
+   * @nullable
+   */
+  location?: string | null;
   createdAt: string;
 }

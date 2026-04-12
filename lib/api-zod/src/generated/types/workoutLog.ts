@@ -24,5 +24,17 @@ export interface WorkoutLog {
    * @nullable
    */
   rating?: number | null;
+  /** @nullable */
+  sport?: string | null;
+  /**
+   * confirmed location name from OpenStreetMap
+   * @nullable
+   */
+  location?: string | null;
+  /**
+   * JSON string with weather data at time of workout
+   * @nullable
+   */
+  weatherJson?: string | null;
   createdAt: string;
 }

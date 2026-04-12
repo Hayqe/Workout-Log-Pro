@@ -514,6 +514,12 @@ components:
         exercises:
           type: string
           description: JSON string of workout exercises/movements
+        sport:
+          type: ["string", "null"]
+          description: sport type for cardio workouts
+        location:
+          type: ["string", "null"]
+          description: location name for cardio workouts
         createdAt:
           type: string
       required:
@@ -538,6 +544,10 @@ components:
           type: ["integer", "null"]
         exercises:
           type: string
+        sport:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
       required:
         - name
         - type
@@ -558,6 +568,10 @@ components:
           type: ["integer", "null"]
         exercises:
           type: string
+        sport:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
 
     ScheduledWorkout:
       type: object
@@ -643,6 +657,14 @@ components:
         rating:
           type: ["integer", "null"]
           description: 1-5 rating
+        sport:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+          description: confirmed location name from OpenStreetMap
+        weatherJson:
+          type: ["string", "null"]
+          description: JSON string with weather data at time of workout
         createdAt:
           type: string
       required:
@@ -672,6 +694,12 @@ components:
           type: string
         rating:
           type: ["integer", "null"]
+        sport:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        weatherJson:
+          type: ["string", "null"]
       required:
         - workoutName
         - workoutType
@@ -695,6 +723,12 @@ components:
           type: string
         rating:
           type: ["integer", "null"]
+        sport:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        weatherJson:
+          type: ["string", "null"]
 
     DashboardSummary:
       type: object

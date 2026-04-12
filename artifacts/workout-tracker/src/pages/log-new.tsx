@@ -461,6 +461,11 @@ export default function LogNewPage() {
     return [{ exerciseName: "", sets: [{ reps: 0, weight: 0 }] }];
   });
 
+  const [location, setLocation] = useState(() => {
+    if (initialTemplate?.type === "cardio") return initialTemplate.location ?? "";
+    return "";
+  });
+
   const [amrapRounds, setAmrapRounds] = useState("");
   const [amrapPartialReps, setAmrapPartialReps] = useState("");
   const [emomScore, setEmomScore] = useState("");
@@ -522,6 +527,7 @@ export default function LogNewPage() {
         const exs = JSON.parse(templateFromList.exercises);
         if (Array.isArray(exs)) setCardioExercises(exs);
       } catch {}
+      setLocation(templateFromList.location ?? "");
     }
   }, [templateFromList]);
 
@@ -560,6 +566,7 @@ export default function LogNewPage() {
         const exs = JSON.parse(fetchedWorkout.exercises);
         if (Array.isArray(exs)) setCardioExercises(exs);
       } catch {}
+      setLocation(fetchedWorkout.location ?? "");
     }
   }, [fetchedWorkout]);
 
@@ -592,6 +599,7 @@ export default function LogNewPage() {
             const exs = JSON.parse(w.exercises);
             if (Array.isArray(exs)) setCardioExercises(exs);
           } catch {}
+          setLocation(w.location ?? "");
         }
       }
     }
@@ -608,11 +616,67 @@ export default function LogNewPage() {
   };
 
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const geocodeAndWeather = async (locationName: string, dateIso: string): Promise<{ confirmedLocation: string; weatherJson: string } | null> => {
+    try {
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "nl,en" } }
+      );
+      const geoData = await geoRes.json();
+      if (!geoData?.[0]) return null;
+
+      const lat = parseFloat(geoData[0].lat);
+      const lon = parseFloat(geoData[0].lon);
+      const confirmedLocation = geoData[0].display_name as string;
+
+      const date = dateIso.split("T")[0];
+      const today = new Date().toISOString().split("T")[0];
+      const diffDays = (new Date(today).getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
+
+      const baseUrl = diffDays > 5
+        ? "https://archive-api.open-meteo.com/v1/archive"
+        : "https://api.open-meteo.com/v1/forecast";
+
+      const wRes = await fetch(
+        `${baseUrl}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode&start_date=${date}&end_date=${date}&timezone=auto`
+      );
+      const wData = await wRes.json();
+      const d = wData?.daily;
+
+      const weather = {
+        tempMax: d?.temperature_2m_max?.[0] ?? null,
+        tempMin: d?.temperature_2m_min?.[0] ?? null,
+        precipitation: d?.precipitation_sum?.[0] ?? null,
+        windspeed: d?.windspeed_10m_max?.[0] ?? null,
+        weathercode: d?.weathercode?.[0] ?? null,
+      };
+
+      return { confirmedLocation, weatherJson: JSON.stringify(weather) };
+    } catch {
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workoutName) return;
+    setIsSubmitting(true);
     try {
+      let confirmedLocation: string | null = null;
+      let weatherJson: string | null = null;
+
+      if (workoutType === "cardio" && location.trim()) {
+        const result = await geocodeAndWeather(location.trim(), loggedAt);
+        if (result) {
+          confirmedLocation = result.confirmedLocation;
+          weatherJson = result.weatherJson;
+        } else {
+          confirmedLocation = location.trim();
+        }
+      }
+
       await createLog.mutateAsync({
         data: {
           workoutId: selectedTemplateId ? parseInt(selectedTemplateId) : null,
@@ -623,6 +687,8 @@ export default function LogNewPage() {
           notes: notes || null,
           results: buildResults(),
           rating,
+          location: confirmedLocation,
+          weatherJson,
         }
       });
       queryClient.invalidateQueries({ queryKey: getListWorkoutLogsQueryKey() });
@@ -632,6 +698,8 @@ export default function LogNewPage() {
         ?? (err as { message?: string })?.message
         ?? "Could not save log.";
       toast({ title: "Save failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -887,22 +955,34 @@ export default function LogNewPage() {
             <CardHeader>
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Cardio Results</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Distance (km)</Label>
-                <Input type="number" value={cardioDistance} onChange={e => setCardioDistance(e.target.value)} placeholder="5.0" className="font-mono" />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">Distance (km)</Label>
+                  <Input type="number" value={cardioDistance} onChange={e => setCardioDistance(e.target.value)} placeholder="5.0" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">Duration (min)</Label>
+                  <Input type="number" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">Avg Heart Rate (bpm)</Label>
+                  <Input type="number" value={cardioHR} onChange={e => setCardioHR(e.target.value)} placeholder="148" className="font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs uppercase">Elevation (m)</Label>
+                  <Input type="number" value={cardioElevation} onChange={e => setCardioElevation(e.target.value)} placeholder="45" className="font-mono" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Duration (min)</Label>
-                <Input type="number" value={cardioDuration} onChange={e => setCardioDuration(e.target.value)} placeholder="32" className="font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Avg Heart Rate (bpm)</Label>
-                <Input type="number" value={cardioHR} onChange={e => setCardioHR(e.target.value)} placeholder="148" className="font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase">Elevation (m)</Label>
-                <Input type="number" value={cardioElevation} onChange={e => setCardioElevation(e.target.value)} placeholder="45" className="font-mono" />
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="font-mono text-xs uppercase tracking-wider">Locatie</Label>
+                <Input
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  placeholder="bijv. Centrum Amsterdam"
+                  className="font-mono text-sm"
+                />
+                <p className="font-mono text-[10px] text-muted-foreground">Bij opslaan wordt automatisch het weerbericht opgehaald.</p>
               </div>
             </CardContent>
           </Card>
@@ -928,8 +1008,8 @@ export default function LogNewPage() {
           <Link href="/log">
             <Button type="button" variant="outline" className="font-mono uppercase tracking-tight">Cancel</Button>
           </Link>
-          <Button type="submit" disabled={createLog.isPending} className="font-mono uppercase tracking-tight">
-            {createLog.isPending ? "Saving..." : "Save Log"}
+          <Button type="submit" disabled={isSubmitting || createLog.isPending} className="font-mono uppercase tracking-tight">
+            {isSubmitting ? "Weerbericht ophalen…" : createLog.isPending ? "Saving..." : "Save Log"}
           </Button>
         </div>
       </form>

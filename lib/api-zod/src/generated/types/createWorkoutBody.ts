@@ -16,4 +16,8 @@ export interface CreateWorkoutBody {
   /** @nullable */
   rounds?: number | null;
   exercises: string;
+  /** @nullable */
+  sport?: string | null;
+  /** @nullable */
+  location?: string | null;
 }

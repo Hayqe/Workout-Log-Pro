@@ -6,8 +6,24 @@ import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer } from "lucide-react";
+import { ArrowLeft, Trash2, Clock, Star, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
 import { format } from "date-fns";
+
+/* WMO weather interpretation codes → icon + label */
+function wmoLabel(code: number | null): { emoji: string; label: string } {
+  if (code === null) return { emoji: "❓", label: "Onbekend" };
+  if (code === 0) return { emoji: "☀️", label: "Helder" };
+  if (code <= 2) return { emoji: "🌤️", label: "Gedeeltelijk bewolkt" };
+  if (code === 3) return { emoji: "☁️", label: "Bewolkt" };
+  if (code <= 49) return { emoji: "🌫️", label: "Mist" };
+  if (code <= 59) return { emoji: "🌧️", label: "Motregen" };
+  if (code <= 69) return { emoji: "🌧️", label: "Regen" };
+  if (code <= 79) return { emoji: "❄️", label: "Sneeuw" };
+  if (code <= 82) return { emoji: "🌦️", label: "Regenbuien" };
+  if (code <= 84) return { emoji: "🌨️", label: "Hagelbuien" };
+  if (code <= 99) return { emoji: "⛈️", label: "Onweer" };
+  return { emoji: "🌡️", label: `Code ${code}` };
+}
 
 export default function LogDetailPage() {
   const [, params] = useRoute("/log/:id");
@@ -42,6 +58,11 @@ export default function LogDetailPage() {
 
   let results: any = {};
   try { results = JSON.parse(log.results); } catch {}
+
+  let weather: { tempMax?: number | null; tempMin?: number | null; precipitation?: number | null; windspeed?: number | null; weathercode?: number | null } | null = null;
+  if (log.weatherJson) {
+    try { weather = JSON.parse(log.weatherJson); } catch {}
+  }
 
   let templateExercises: any[] = [];
   if (linkedWorkout?.exercises) {
@@ -209,6 +230,57 @@ export default function LogDetailPage() {
               <div>
                 <div className="flex items-center gap-1 text-muted-foreground text-xs uppercase mb-1"><Mountain className="h-3 w-3" /> Elevation</div>
                 <p className="text-2xl font-black">{results.elevationGain}<span className="text-sm ml-1">m</span></p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Weather + Location card for cardio */}
+      {isCardio && (log.location || weather) && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5" /> Locatie &amp; Weer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {log.location && (
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="font-mono text-sm text-foreground">{log.location}</p>
+              </div>
+            )}
+            {weather && (
+              <div className="grid grid-cols-2 gap-4">
+                {weather.weathercode != null && (
+                  <div className="col-span-2 flex items-center gap-3">
+                    <span className="text-3xl">{wmoLabel(weather.weathercode ?? null).emoji}</span>
+                    <span className="font-mono text-sm font-bold text-foreground">{wmoLabel(weather.weathercode ?? null).label}</span>
+                  </div>
+                )}
+                {(weather.tempMin != null || weather.tempMax != null) && (
+                  <div className="flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-muted-foreground" />
+                    <div className="font-mono text-sm">
+                      {weather.tempMin != null && <span className="text-blue-400">{weather.tempMin}°</span>}
+                      {weather.tempMin != null && weather.tempMax != null && <span className="text-muted-foreground mx-1">–</span>}
+                      {weather.tempMax != null && <span className="text-red-400">{weather.tempMax}°C</span>}
+                    </div>
+                  </div>
+                )}
+                {weather.windspeed != null && (
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono text-sm">{weather.windspeed} km/u</span>
+                  </div>
+                )}
+                {weather.precipitation != null && (
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono text-sm">{weather.precipitation} mm</span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
