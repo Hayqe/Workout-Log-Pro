@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Star, Plus, X, MapPin } from "lucide-react";
@@ -476,16 +475,15 @@ export default function LogEditPage() {
               className="font-mono text-sm resize-none"
               rows={3}
             />
-            <div className="space-y-3">
-              <Label className="font-mono text-xs uppercase tracking-wider flex items-center gap-2">
-                Rating{" "}
-                <span className="flex">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} className={`h-4 w-4 ${n <= rating ? "text-yellow-400 fill-current" : "text-muted-foreground"}`} />
-                  ))}
-                </span>
-              </Label>
-              <Slider min={1} max={5} step={1} value={[rating]} onValueChange={([v]) => setRating(v)} className="max-w-xs" />
+            <div className="space-y-2">
+              <Label className="font-mono text-xs uppercase tracking-wider">Rating</Label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} type="button" onClick={() => setRating(n)} className="transition-colors hover:scale-110">
+                    <Star className={`h-6 w-6 ${n <= rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"}`} />
+                  </button>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
