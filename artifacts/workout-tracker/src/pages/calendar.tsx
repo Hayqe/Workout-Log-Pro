@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Globe, Lock, Check } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isToday } from "date-fns";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Globe, Lock, Check, CalendarDays, List } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isToday, isBefore, startOfDay } from "date-fns";
 import { useLocation } from "wouter";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
@@ -31,7 +31,7 @@ const TYPE_CHIP: Record<string, { label: string; bg: string; text: string }> = {
 function WorkoutTypeChip({ type, done }: { type: string; done: boolean }) {
   const chip = TYPE_CHIP[type] ?? { label: type.slice(0, 2).toUpperCase(), bg: "bg-muted", text: "text-muted-foreground" };
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded px-1 py-0 font-mono text-[8px] font-bold leading-4 ${chip.bg} ${chip.text} ${done ? "opacity-60" : ""} w-full justify-center`}>
+    <span className={`inline-flex items-center gap-0.5 rounded px-1 py-0 font-mono text-[9px] font-bold leading-4 ${chip.bg} ${chip.text} ${done ? "opacity-60" : ""} w-full justify-center`}>
       {done ? "✓" : chip.label}
     </span>
   );
@@ -47,6 +47,7 @@ export default function CalendarPage() {
   const [newNotes, setNewNotes] = useState("");
   const [newIsPublic, setNewIsPublic] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -139,60 +140,191 @@ export default function CalendarPage() {
   const selectedDayScheduled = selectedDate ? getScheduledForDay(selectedDate) : [];
   const selectedAdHocLogs = selectedDate ? getAdHocLogsForDay(selectedDate) : [];
 
+  const today = startOfDay(new Date());
+  const futureScheduled = (scheduled || []).filter(s => {
+    try { return !isBefore(parseISO(s.scheduledDate), today); } catch { return false; }
+  });
+
+  const groupedByDate = futureScheduled.reduce<Record<string, typeof futureScheduled>>((acc, s) => {
+    const key = s.scheduledDate.split("T")[0];
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
+  const sortedDateKeys = Object.keys(groupedByDate).sort();
+
+  const WorkoutRow = ({
+    s,
+    dateStr,
+    onDelete,
+  }: {
+    s: (typeof futureScheduled)[0];
+    dateStr: string;
+    onDelete: (e: React.MouseEvent, id: number) => void;
+  }) => {
+    const own = isOwn(s);
+    const pub = s.isPublic;
+    const log = getUserLog(s.workoutId, dateStr);
+    const logged = !!log;
+    const rowHref = logged
+      ? `/log/${(log as any).id}`
+      : s.workoutId
+        ? `/log/new?workoutId=${s.workoutId}`
+        : null;
+
+    return (
+      <div
+        onClick={() => rowHref && handleRowClick(rowHref)}
+        className={`flex items-center justify-between p-3 rounded border transition-all
+          ${rowHref ? "cursor-pointer hover:bg-muted/40" : ""}
+          ${logged ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}
+        `}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`font-bold text-sm ${logged ? "text-muted-foreground" : ""}`}>{s.workoutName}</span>
+            <WorkoutBadge type={s.workoutType} />
+            {!own && pub && (
+              <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
+                <Globe className="h-2.5 w-2.5" /> Public
+              </span>
+            )}
+            {logged && (
+              <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
+                <Check className="h-2.5 w-2.5" /> Done
+              </span>
+            )}
+          </div>
+          {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
+        </div>
+        <div className="flex gap-1 shrink-0 ml-2" onClick={e => e.stopPropagation()}>
+          {(own || pub) && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => onDelete(e, s.id)}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
+          {rowHref && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-2 font-mono text-[10px] uppercase ${logged ? "text-muted-foreground" : "text-primary"}`}
+              onClick={() => handleRowClick(rowHref)}
+            >
+              {logged ? "View" : "Log"}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div>
-        <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Calendar</h1>
-        <p className="text-muted-foreground font-mono text-sm mt-1">Plan your training week</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Calendar</h1>
+          <p className="text-muted-foreground font-mono text-sm mt-1">Plan your training week</p>
+        </div>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1 mt-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("calendar")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wide transition-all ${viewMode === "calendar" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Calendar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wide transition-all ${viewMode === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <List className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">List</span>
+          </button>
+        </div>
       </div>
 
-      <Card className="bg-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <CardTitle className="font-mono text-base uppercase tracking-wider">{format(currentMonth, "MMMM yyyy")}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 mb-2">
-            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => (
-              <div key={d} className="text-center text-[10px] font-mono uppercase text-muted-foreground py-1">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {[...Array(firstDayOfWeek)].map((_, i) => <div key={`empty-${i}`} />)}
-            {days.map(day => {
-              const dayStr = format(day, "yyyy-MM-dd");
-              const dayScheduled = getScheduledForDay(day);
-              const adHocLogs = getAdHocLogsForDay(day);
-              const hasWorkout = dayScheduled.length > 0 || adHocLogs.length > 0;
-              const today = isToday(day);
+      {viewMode === "calendar" ? (
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <CardTitle className="font-mono text-base uppercase tracking-wider">{format(currentMonth, "MMMM yyyy")}</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 mb-3">
+              {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(d => (
+                <div key={d} className="text-center text-xs font-mono font-bold uppercase text-muted-foreground py-1">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {[...Array(firstDayOfWeek)].map((_, i) => <div key={`empty-${i}`} />)}
+              {days.map(day => {
+                const dayStr = format(day, "yyyy-MM-dd");
+                const dayScheduled = getScheduledForDay(day);
+                const adHocLogs = getAdHocLogsForDay(day);
+                const hasWorkout = dayScheduled.length > 0 || adHocLogs.length > 0;
+                const today = isToday(day);
+                return (
+                  <button
+                    key={day.toISOString()}
+                    onClick={() => handleDayClick(day)}
+                    className={`aspect-square flex flex-col items-center justify-start p-1 rounded font-mono transition-all hover:bg-muted/50 relative
+                      ${today ? "ring-1 ring-primary" : ""}
+                      ${selectedDate && isSameDay(day, selectedDate) ? "bg-primary/10" : ""}
+                    `}
+                  >
+                    <span className={`text-sm font-bold leading-tight ${today ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</span>
+                    {hasWorkout && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
+                        {dayScheduled.slice(0, 2).map(s => {
+                          const logged = !!getUserLog(s.workoutId, dayStr);
+                          return <WorkoutTypeChip key={s.id} type={s.workoutType} done={logged} />;
+                        })}
+                        {adHocLogs.slice(0, 2).map((log: any) => (
+                          <span key={log.id} className="inline-flex items-center rounded px-1 py-0 font-mono text-[9px] font-bold leading-4 bg-green-900/70 text-green-300 w-full justify-center">✓</span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {sortedDateKeys.length === 0 ? (
+            <Card className="bg-card border-border">
+              <CardContent className="py-10 text-center">
+                <p className="font-mono text-sm text-muted-foreground uppercase tracking-wide">No upcoming workouts planned</p>
+              </CardContent>
+            </Card>
+          ) : (
+            sortedDateKeys.map(dateKey => {
+              const date = parseISO(dateKey);
+              const isDateToday = isToday(date);
+              const items = groupedByDate[dateKey];
               return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => handleDayClick(day)}
-                  className={`aspect-square flex flex-col items-center justify-start p-1 rounded text-sm font-mono transition-all hover:bg-muted/50 relative
-                    ${today ? "ring-1 ring-primary" : ""}
-                    ${selectedDate && isSameDay(day, selectedDate) ? "bg-primary/10" : ""}
-                  `}
-                >
-                  <span className={`text-[11px] font-bold ${today ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</span>
-                  {hasWorkout && (
-                    <div className="mt-0.5 flex flex-col gap-0.5 w-full items-center">
-                      {dayScheduled.slice(0, 2).map(s => {
-                        const logged = !!getUserLog(s.workoutId, dayStr);
-                        return <WorkoutTypeChip key={s.id} type={s.workoutType} done={logged} />;
-                      })}
-                      {adHocLogs.slice(0, 2).map((log: any) => (
-                        <span key={log.id} className="inline-flex items-center rounded px-1 py-0 font-mono text-[8px] font-bold leading-4 bg-green-900/70 text-green-300 w-full justify-center">✓</span>
-                      ))}
-                    </div>
-                  )}
-                </button>
+                <div key={dateKey} className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <p className={`font-mono text-xs uppercase tracking-widest font-bold ${isDateToday ? "text-primary" : "text-muted-foreground"}`}>
+                      {isDateToday ? "Today — " : ""}{format(date, "EEEE, MMMM d")}
+                    </p>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  <div className="space-y-2">
+                    {items.map(s => (
+                      <WorkoutRow key={s.id} s={s} dateStr={dateKey} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </div>
               );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+            })
+          )}
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-card border-border max-w-md">
@@ -207,63 +339,9 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 <p className="font-mono text-xs uppercase text-muted-foreground">Workouts this day</p>
 
-                {selectedDayScheduled.map(s => {
-                  const own = isOwn(s);
-                  const pub = s.isPublic;
-                  const log = getUserLog(s.workoutId, selectedDateStr);
-                  const logged = !!log;
-                  const rowHref = logged
-                    ? `/log/${(log as any).id}`
-                    : s.workoutId
-                      ? `/log/new?workoutId=${s.workoutId}`
-                      : null;
-
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => rowHref && handleRowClick(rowHref)}
-                      className={`flex items-center justify-between p-3 rounded border transition-all
-                        ${rowHref ? "cursor-pointer hover:bg-muted/40" : ""}
-                        ${logged ? "border-green-500/30 bg-green-500/5" : own ? "border-border" : "border-muted-foreground/30 bg-muted/20"}
-                      `}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-bold text-sm ${logged ? "text-muted-foreground" : ""}`}>{s.workoutName}</span>
-                          <WorkoutBadge type={s.workoutType} />
-                          {!own && pub && (
-                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-muted-foreground border border-muted-foreground/30 rounded px-1 py-0.5">
-                              <Globe className="h-2.5 w-2.5" /> Public
-                            </span>
-                          )}
-                          {logged && (
-                            <span className="flex items-center gap-1 text-[9px] font-mono uppercase text-green-500 border border-green-500/30 rounded px-1 py-0.5">
-                              <Check className="h-2.5 w-2.5" /> Done
-                            </span>
-                          )}
-                        </div>
-                        {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
-                      </div>
-                      <div className="flex gap-1 shrink-0 ml-2" onClick={e => e.stopPropagation()}>
-                        {(own || pub) && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => handleDelete(e, s.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {rowHref && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={`h-7 px-2 font-mono text-[10px] uppercase ${logged ? "text-muted-foreground" : "text-primary"}`}
-                            onClick={() => handleRowClick(rowHref)}
-                          >
-                            {logged ? "View" : "Log"}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {selectedDayScheduled.map(s => (
+                  <WorkoutRow key={s.id} s={s} dateStr={selectedDateStr} onDelete={handleDelete} />
+                ))}
 
                 {selectedAdHocLogs.map((log: any) => (
                   <div
