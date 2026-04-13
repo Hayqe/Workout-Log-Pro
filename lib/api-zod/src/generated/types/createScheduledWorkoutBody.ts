@@ -14,4 +14,5 @@ export interface CreateScheduledWorkoutBody {
   scheduledDate: string;
   /** @nullable */
   notes?: string | null;
+  isPublic?: boolean;
 }

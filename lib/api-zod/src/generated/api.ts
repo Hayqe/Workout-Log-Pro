@@ -210,6 +210,7 @@ export const CreateScheduledWorkoutBody = zod.object({
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
 });
 
 /**
@@ -245,6 +246,7 @@ export const UpdateScheduledWorkoutBody = zod.object({
   workoutType: zod.string().optional(),
   scheduledDate: zod.string().optional(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
   completed: zod.boolean().optional(),
 });
 

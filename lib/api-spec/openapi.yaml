@@ -619,6 +619,8 @@ components:
           type: string
         notes:
           type: ["string", "null"]
+        isPublic:
+          type: boolean
       required:
         - workoutName
         - workoutType
@@ -637,6 +639,8 @@ components:
           type: string
         notes:
           type: ["string", "null"]
+        isPublic:
+          type: boolean
         completed:
           type: boolean
 
