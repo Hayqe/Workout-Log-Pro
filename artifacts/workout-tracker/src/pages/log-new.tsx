@@ -182,6 +182,148 @@ function StopwatchTracker({
   return timerBody(false);
 }
 
+/* ─── AMRAP timer: countdown from configurable duration, tap = +1 round ─── */
+function AmrapTimer({ onSave }: { onSave: (rounds: number, partialReps: number) => void }) {
+  const [durationMin, setDurationMin] = useState(20);
+  const [remaining, setRemaining] = useState(20 * 60);
+  const [rounds, setRounds] = useState(0);
+  const [partialReps, setPartialReps] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  /* 10-second pre-start countdown */
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      const id = setTimeout(() => { setCountdown(null); setRunning(true); setFullscreen(true); }, 700);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => setCountdown(c => c !== null ? c - 1 : null), 1000);
+    return () => clearTimeout(id);
+  }, [countdown]);
+
+  /* countdown timer */
+  useEffect(() => {
+    if (!running) return;
+    if (remaining <= 0) {
+      setRunning(false);
+      setDone(true);
+      onSave(rounds, partialReps);
+      return;
+    }
+    const id = setInterval(() => setRemaining(r => {
+      if (r <= 1) { setRunning(false); setDone(true); onSave(rounds, partialReps); return 0; }
+      return r - 1;
+    }), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const handleStart = () => { setDone(false); setCountdown(10); };
+  const handleReset = () => {
+    setRunning(false); setDone(false); setCountdown(null); setFullscreen(false);
+    setRemaining(durationMin * 60); setRounds(0); setPartialReps(0);
+  };
+  const handleDurationChange = (v: number) => {
+    setDurationMin(v); setRemaining(v * 60);
+  };
+
+  const isLastSeconds = remaining <= 10 && running;
+  const pct = remaining / (durationMin * 60);
+
+  if (countdown !== null) return (
+    <FullscreenTimerOverlay onClose={() => setCountdown(null)}>
+      <CountdownToStart count={countdown} />
+    </FullscreenTimerOverlay>
+  );
+
+  const timerBody = (fs: boolean) => (
+    <div className={`flex flex-col items-center gap-5 ${fs ? "w-full px-8" : "py-2"}`}>
+      {/* Duration setup — only before start */}
+      {!running && !done && !fs && (
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground whitespace-nowrap">Duration (min)</label>
+          <input
+            type="number"
+            value={durationMin}
+            min={1}
+            onChange={e => handleDurationChange(parseInt(e.target.value) || 1)}
+            className="font-mono text-center h-9 w-20 border border-input rounded-md bg-background text-foreground px-2"
+          />
+        </div>
+      )}
+
+      {/* Countdown display */}
+      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors
+        ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : fs ? "text-white" : "text-foreground"}
+        ${fs ? "text-[96px]" : "text-6xl"}`}>
+        {fmtTime(remaining)}
+      </div>
+
+      {/* Progress bar */}
+      {(running || done) && (
+        <div className={`w-full rounded-full overflow-hidden ${fs ? "h-3 max-w-sm bg-white/10" : "h-2 bg-muted"}`}>
+          <div className={`h-full rounded-full transition-all ${isLastSeconds ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct * 100}%` }} />
+        </div>
+      )}
+
+      {/* Round counter */}
+      <div className="flex flex-col items-center gap-2">
+        <p className={`font-mono uppercase tracking-widest ${fs ? "text-sm text-white/50" : "text-[10px] text-muted-foreground"}`}>Rounds</p>
+        <div className="flex items-center gap-5" onClick={fs ? e => e.stopPropagation() : undefined}>
+          <Button type="button" variant="outline" size="icon" className={`${fs ? "h-14 w-14 border-white/20 text-white hover:bg-white/10" : "h-9 w-9"}`} onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
+          <span className={`font-mono font-black tabular-nums text-center ${fs ? "text-7xl w-24 text-white" : "text-5xl w-16"}`}>{rounds}</span>
+          <Button type="button" variant="outline" size="icon" className={`${fs ? "h-14 w-14 border-white/20 text-white hover:bg-white/10" : "h-9 w-9"}`} onClick={() => setRounds(r => r + 1)}><Plus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
+        </div>
+      </div>
+
+      {done && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Time's up — {rounds} rounds ✓</p>}
+
+      {/* Controls */}
+      <div className="flex gap-3" onClick={fs ? e => e.stopPropagation() : undefined}>
+        {!running && !done && (
+          <Button type="button" onClick={handleStart} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
+            <Play className="h-4 w-4" />Start
+          </Button>
+        )}
+        {running && (
+          <Button type="button" onClick={() => setRunning(false)} variant="outline" className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base border-white/20 text-white hover:bg-white/10" : ""}`}>
+            <Square className="h-4 w-4" />Pause
+          </Button>
+        )}
+        {!running && done && (
+          <Button type="button" onClick={() => { onSave(rounds, partialReps); }} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
+            Save
+          </Button>
+        )}
+        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base border-white/20 text-white hover:bg-white/10" : ""}`}>
+          <RotateCcw className="h-3.5 w-3.5" />Reset
+        </Button>
+        {running && !fs && (
+          <Button type="button" variant="outline" size="icon" onClick={() => setFullscreen(true)} title="Fullscreen">
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  if (fullscreen) {
+    return (
+      <FullscreenTimerOverlay
+        onClose={() => setFullscreen(false)}
+        onTap={() => setRounds(r => r + 1)}
+        tapHint="Tap to add a round"
+      >
+        {timerBody(true)}
+      </FullscreenTimerOverlay>
+    );
+  }
+
+  return timerBody(false);
+}
+
 /* ─── EMOM timer: configurable interval that resets until total time is up ─── */
 function EmomTimer() {
   const [intervalMin, setIntervalMin] = useState(1);
@@ -877,14 +1019,14 @@ export default function LogNewPage() {
           </Card>
         )}
 
-        {/* AMRAP tracker — same stopwatch as RFT, rounds auto-saved */}
+        {/* AMRAP tracker — countdown timer with round counter */}
         {workoutType === "amrap" && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Score</CardTitle>
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Timer</CardTitle>
             </CardHeader>
             <CardContent>
-              <StopwatchTracker onStop={(rounds, _time) => { setAmrapRounds(rounds.toString()); }} />
+              <AmrapTimer onSave={(r, p) => { setAmrapRounds(r.toString()); setAmrapPartialReps(p.toString()); }} />
               <div className="mt-5 border-t border-border pt-4 grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-mono text-xs uppercase">Rounds</Label>
