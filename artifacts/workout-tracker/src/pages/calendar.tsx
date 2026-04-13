@@ -254,7 +254,7 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-7 mb-3">
-              {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(d => (
+              {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => (
                 <div key={d} className="text-center text-xs font-mono font-bold uppercase text-muted-foreground py-1">{d}</div>
               ))}
             </div>
