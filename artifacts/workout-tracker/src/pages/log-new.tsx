@@ -740,15 +740,9 @@ export default function LogNewPage() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
-                  <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
-                  <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
-                </div>
+              <div className="space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
+                <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
               </div>
             </CardContent>
           </Card>
@@ -781,15 +775,9 @@ export default function LogNewPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
-                  <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
-                  <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
-                </div>
+              <div className="space-y-2">
+                <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
+                <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
               </div>
             </CardContent>
           </Card>
