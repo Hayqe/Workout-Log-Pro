@@ -81,43 +81,43 @@
   /* Primary text: #3E322A dark brown */
   --foreground: 24 19% 20%;
 
-  /* Borders & icons: #8B7D74 grey-brown, lightened for borders */
-  --border: 24 12% 78%;
-  --input: 24 12% 78%;
-  --ring: 43 64% 57%;
+  /* Borders & icons: darkened for better visibility */
+  --border: 24 14% 68%;
+  --input: 24 14% 68%;
+  --ring: 43 72% 34%;
 
   /* Cards: slightly lighter warm off-white */
   --card: 31 50% 96%;
   --card-foreground: 24 19% 20%;
-  --card-border: 24 12% 84%;
+  --card-border: 24 14% 76%;
 
   /* Sidebar: slightly darker warm tone */
   --sidebar: 31 35% 86%;
   --sidebar-foreground: 24 19% 20%;
-  --sidebar-border: 24 12% 76%;
-  /* Primary sidebar accent: golden yellow */
-  --sidebar-primary: 43 74% 67%;
-  --sidebar-primary-foreground: 24 19% 20%;
+  --sidebar-border: 24 14% 72%;
+  /* Primary sidebar accent: dark amber gold */
+  --sidebar-primary: 43 72% 34%;
+  --sidebar-primary-foreground: 0 0% 98%;
   --sidebar-accent: 31 25% 82%;
   --sidebar-accent-foreground: 24 19% 20%;
-  --sidebar-ring: 43 74% 57%;
+  --sidebar-ring: 43 72% 34%;
 
   /* Popover: same as card */
   --popover: 31 50% 96%;
   --popover-foreground: 24 19% 20%;
-  --popover-border: 24 12% 84%;
+  --popover-border: 24 14% 76%;
 
-  /* Primary button: #E9C46A golden yellow */
-  --primary: 43 74% 67%;
-  --primary-foreground: 24 19% 20%;
+  /* Primary button: dark amber gold — good contrast on warm beige */
+  --primary: 43 72% 34%;
+  --primary-foreground: 0 0% 98%;
 
-  /* Secondary button: #F4A261 warm orange */
+  /* Secondary button: warm orange — dark text for legibility */
   --secondary: 27 87% 67%;
-  --secondary-foreground: 0 0% 100%;
+  --secondary-foreground: 24 25% 18%;
 
-  /* Muted: very light warm surface, muted-foreground = #8B7D74 */
+  /* Muted: very light warm surface, muted-foreground darkened for AA contrast */
   --muted: 23 18% 87%;
-  --muted-foreground: 23 9% 50%;
+  --muted-foreground: 23 13% 36%;
 
   /* Accent: subtle hover surface */
   --accent: 31 25% 82%;
