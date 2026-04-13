@@ -253,7 +253,7 @@ export default function WorkoutsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
-            <Download className="h-4 w-4" /> Komoot Import
+            <Download className="h-4 w-4" /><span className="hidden sm:inline">Komoot Import</span>
           </Button>
           <Link href="/workouts/new">
             <Button className="font-mono uppercase tracking-tight gap-2">
