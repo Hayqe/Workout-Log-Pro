@@ -53,19 +53,19 @@ function FullscreenTimerOverlay({ onClose, onTap, tapHint, children }: { onClose
 
   return (
     <div
-      className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center select-none"
+      className="fixed inset-0 z-[300] bg-black flex flex-col items-center justify-center select-none"
       onClick={onTap}
     >
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="absolute top-5 right-5 z-10 h-11 w-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="absolute top-5 right-5 z-10 h-11 w-11 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
       {children}
       {tapHint && (
-        <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 pointer-events-none">
+        <p className="absolute bottom-6 font-mono text-[10px] uppercase tracking-widest text-white/30 pointer-events-none">
           {tapHint}
         </p>
       )}
@@ -129,18 +129,18 @@ function StopwatchTracker({
 
   const timerBody = (fs: boolean) => (
     <div className={`flex flex-col items-center gap-6 ${fs ? "w-full px-8" : "py-2"}`}>
-      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${running ? "text-primary" : saved ? "text-green-400" : "text-foreground"} ${fs ? "text-[96px]" : "text-6xl"}`}>
+      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${running ? "text-primary" : saved ? "text-green-400" : fs ? "text-white" : "text-foreground"} ${fs ? "text-[96px]" : "text-6xl"}`}>
         {fmtTime(elapsed)}
       </div>
       {saved && !fs && <p className="font-mono text-[10px] text-green-400 uppercase tracking-widest">Saved ✓</p>}
 
       <div className="flex flex-col items-center gap-2">
-        <p className={`font-mono uppercase tracking-widest text-muted-foreground ${fs ? "text-sm" : "text-[10px]"}`}>Rounds</p>
+        <p className={`font-mono uppercase tracking-widest ${fs ? "text-sm text-white/50" : "text-[10px] text-muted-foreground"}`}>Rounds</p>
         {/* stopPropagation on +/− row so these buttons don't also trigger onTap */}
         <div className="flex items-center gap-5" onClick={fs ? e => e.stopPropagation() : undefined}>
-          <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
-          <span className={`font-mono font-black tabular-nums text-center ${fs ? "text-7xl w-24" : "text-5xl w-16"}`}>{rounds}</span>
-          <Button type="button" variant="outline" size="icon" className={fs ? "h-14 w-14" : "h-9 w-9"} onClick={() => setRounds(r => r + 1)}><Plus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
+          <Button type="button" variant="outline" size="icon" className={`${fs ? "h-14 w-14 border-white/20 text-white hover:bg-white/10" : "h-9 w-9"}`} onClick={() => setRounds(r => Math.max(0, r - 1))}><Minus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
+          <span className={`font-mono font-black tabular-nums text-center ${fs ? "text-7xl w-24 text-white" : "text-5xl w-16"}`}>{rounds}</span>
+          <Button type="button" variant="outline" size="icon" className={`${fs ? "h-14 w-14 border-white/20 text-white hover:bg-white/10" : "h-9 w-9"}`} onClick={() => setRounds(r => r + 1)}><Plus className={fs ? "h-6 w-6" : "h-4 w-4"} /></Button>
         </div>
       </div>
 
@@ -155,7 +155,7 @@ function StopwatchTracker({
             <Square className="h-4 w-4" />Stop &amp; Save
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
+        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base border-white/20 text-white hover:bg-white/10" : ""}`}>
           <RotateCcw className="h-3.5 w-3.5" />Reset
         </Button>
         {running && !fs && (
@@ -172,7 +172,7 @@ function StopwatchTracker({
       <FullscreenTimerOverlay
         onClose={() => setFullscreen(false)}
         onTap={() => setRounds(r => r + 1)}
-        tapHint="Tik om ronde +1 toe te voegen"
+        tapHint="Tap to add a round"
       >
         {timerBody(true)}
       </FullscreenTimerOverlay>
@@ -279,27 +279,27 @@ function EmomTimer() {
 
       {/* Interval status */}
       {(running || done) && (
-        <p className={`font-mono uppercase tracking-widest text-muted-foreground ${fs ? "text-base" : "text-[11px]"}`}>
+        <p className={`font-mono uppercase tracking-widest ${fs ? "text-base text-white/50" : "text-[11px] text-muted-foreground"}`}>
           Interval {currentInterval} / {totalIntervals}
         </p>
       )}
 
       {/* Interval countdown */}
-      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : "text-foreground"} ${fs ? "text-[110px]" : "text-6xl"}`}>
+      <div className={`font-mono font-black tabular-nums tracking-tighter transition-colors ${done ? "text-green-400" : isLastSeconds ? "text-destructive" : running ? "text-primary" : fs ? "text-white" : "text-foreground"} ${fs ? "text-[110px]" : "text-6xl"}`}>
         {fmtTime(intervalSec)}
       </div>
 
       {/* Progress bar */}
       {(running || done) && (
-        <div className={`w-full bg-muted rounded-full overflow-hidden ${fs ? "h-3 max-w-sm" : "h-2"}`}>
+        <div className={`w-full rounded-full overflow-hidden ${fs ? "h-3 max-w-sm bg-white/10" : "h-2 bg-muted"}`}>
           <div className={`h-full rounded-full transition-all ${isLastSeconds ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct * 100}%` }} />
         </div>
       )}
 
       {/* Total remaining */}
       {(running || done) && (
-        <p className={`font-mono text-muted-foreground ${fs ? "text-lg" : "text-sm"}`}>
-          Total remaining: <span className={`font-bold text-foreground`}>{fmtTime(totalSec)}</span>
+        <p className={`font-mono ${fs ? "text-lg text-white/50" : "text-sm text-muted-foreground"}`}>
+          Total remaining: <span className={`font-bold ${fs ? "text-white" : "text-foreground"}`}>{fmtTime(totalSec)}</span>
         </p>
       )}
 
@@ -313,7 +313,7 @@ function EmomTimer() {
           </Button>
         )}
         {running && (
-          <Button type="button" onClick={() => setRunning(false)} variant="outline" className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
+          <Button type="button" onClick={() => setRunning(false)} variant="outline" className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base border-white/20 text-white hover:bg-white/10" : ""}`}>
             <Square className="h-4 w-4" />Pause
           </Button>
         )}
@@ -322,7 +322,7 @@ function EmomTimer() {
             <Play className="h-4 w-4" />Resume
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base" : ""}`}>
+        <Button type="button" variant="outline" onClick={handleReset} className={`font-mono uppercase gap-2 ${fs ? "h-12 px-8 text-base border-white/20 text-white hover:bg-white/10" : ""}`}>
           <RotateCcw className="h-3.5 w-3.5" />Reset
         </Button>
         {running && !fs && (
