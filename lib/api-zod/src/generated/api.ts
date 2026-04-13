@@ -187,11 +187,13 @@ export const ListScheduledWorkoutsQueryParams = zod.object({
 
 export const ListScheduledWorkoutsResponseItem = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   workoutId: zod.number().nullish(),
   workoutName: zod.string(),
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
   completed: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -219,11 +221,13 @@ export const GetScheduledWorkoutParams = zod.object({
 
 export const GetScheduledWorkoutResponse = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   workoutId: zod.number().nullish(),
   workoutName: zod.string(),
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
   completed: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -246,11 +250,13 @@ export const UpdateScheduledWorkoutBody = zod.object({
 
 export const UpdateScheduledWorkoutResponse = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   workoutId: zod.number().nullish(),
   workoutName: zod.string(),
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
   completed: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -448,11 +454,13 @@ export const GetRecentLogsResponse = zod.array(GetRecentLogsResponseItem);
  */
 export const GetUpcomingWorkoutsResponseItem = zod.object({
   id: zod.number(),
+  userId: zod.number().nullish(),
   workoutId: zod.number().nullish(),
   workoutName: zod.string(),
   workoutType: zod.string(),
   scheduledDate: zod.string(),
   notes: zod.string().nullish(),
+  isPublic: zod.boolean().optional(),
   completed: zod.boolean(),
   createdAt: zod.string(),
 });

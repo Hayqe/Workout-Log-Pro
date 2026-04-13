@@ -580,6 +580,8 @@ components:
       properties:
         id:
           type: integer
+        userId:
+          type: ["integer", "null"]
         workoutId:
           type: ["integer", "null"]
         workoutName:
@@ -590,6 +592,8 @@ components:
           type: string
         notes:
           type: ["string", "null"]
+        isPublic:
+          type: boolean
         completed:
           type: boolean
         createdAt:

@@ -209,7 +209,7 @@ export default function CalendarPage() {
 
                 {selectedDayScheduled.map(s => {
                   const own = isOwn(s);
-                  const pub = (s as any).isPublic;
+                  const pub = s.isPublic;
                   const log = getUserLog(s.workoutId, selectedDateStr);
                   const logged = !!log;
                   const rowHref = logged
