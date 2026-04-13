@@ -245,7 +245,7 @@ export default function CalendarPage() {
                         {s.notes && <p className="text-xs text-muted-foreground font-mono mt-1">{s.notes}</p>}
                       </div>
                       <div className="flex gap-1 shrink-0 ml-2" onClick={e => e.stopPropagation()}>
-                        {(own || pub) && !logged && (
+                        {own && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => handleDelete(e, s.id)}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
