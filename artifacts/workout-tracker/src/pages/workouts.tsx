@@ -246,17 +246,14 @@ export default function WorkoutsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Workouts</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">All workout templates</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="icon" className="text-muted-foreground sm:hidden" onClick={() => setKomootOpen(true)}>
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground hidden sm:flex" onClick={() => setKomootOpen(true)}>
-            <Download className="h-4 w-4" /> Komoot Import
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
+            <Download className="h-4 w-4" /><span className="hidden sm:inline">Komoot Import</span>
           </Button>
           <Link href="/workouts/new">
             <Button className="font-mono uppercase tracking-tight gap-2">

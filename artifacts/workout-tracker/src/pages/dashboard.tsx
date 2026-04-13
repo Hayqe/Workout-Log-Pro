@@ -62,6 +62,54 @@ export default function Dashboard() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sidebar Area */}
+        <div className="space-y-6">
+          <Card className="bg-card border-border shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Upcoming</CardTitle>
+              <Link href="/calendar" className="text-primary hover:text-primary/80">
+                <CalendarCheck className="h-4 w-4" />
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {loadingUpcoming ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-14 bg-muted animate-pulse rounded-md" />
+                  ))}
+                </div>
+              ) : upcoming?.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground font-mono text-sm border border-dashed border-border rounded-md">
+                  Nothing scheduled.
+                  <div className="mt-2">
+                    <Link href="/calendar" className="text-primary hover:underline">Schedule one</Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcoming?.map((workout) => (
+                    <div key={workout.id} className="flex items-start p-3 rounded-md border border-border bg-card">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-sm truncate">{workout.workoutName}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground uppercase">{format(new Date(workout.scheduledDate), "MMM d")}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <WorkoutBadge type={workout.workoutType} />
+                          <Link href={`/log/new?workoutId=${workout.workoutId}&scheduledId=${workout.id}`} className="text-xs font-mono font-bold text-primary hover:text-primary/80 uppercase">
+                            Log It
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>
+
         {/* Main Chart Area */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="bg-card border-border shadow-md">
@@ -141,54 +189,6 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* Sidebar Area */}
-        <div className="space-y-6">
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Upcoming</CardTitle>
-              <Link href="/calendar" className="text-primary hover:text-primary/80">
-                <CalendarCheck className="h-4 w-4" />
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {loadingUpcoming ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-14 bg-muted animate-pulse rounded-md" />
-                  ))}
-                </div>
-              ) : upcoming?.length === 0 ? (
-                <div className="py-6 text-center text-muted-foreground font-mono text-sm border border-dashed border-border rounded-md">
-                  Nothing scheduled.
-                  <div className="mt-2">
-                    <Link href="/calendar" className="text-primary hover:underline">Schedule one</Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcoming?.map((workout) => (
-                    <div key={workout.id} className="flex items-start p-3 rounded-md border border-border bg-card">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-bold text-sm truncate">{workout.workoutName}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground uppercase">{format(new Date(workout.scheduledDate), "MMM d")}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <WorkoutBadge type={workout.workoutType} />
-                          <Link href={`/log/new?workoutId=${workout.workoutId}&scheduledId=${workout.id}`} className="text-xs font-mono font-bold text-primary hover:text-primary/80 uppercase">
-                            Log It
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
         </div>
       </div>
     </div>

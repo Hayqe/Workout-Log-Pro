@@ -97,12 +97,15 @@ export interface UpdateWorkoutBody {
 export interface ScheduledWorkout {
   id: number;
   /** @nullable */
+  userId?: number | null;
+  /** @nullable */
   workoutId?: number | null;
   workoutName: string;
   workoutType: string;
   scheduledDate: string;
   /** @nullable */
   notes?: string | null;
+  isPublic?: boolean;
   completed: boolean;
   createdAt: string;
 }
@@ -115,6 +118,7 @@ export interface CreateScheduledWorkoutBody {
   scheduledDate: string;
   /** @nullable */
   notes?: string | null;
+  isPublic?: boolean;
 }
 
 export interface UpdateScheduledWorkoutBody {
@@ -125,6 +129,7 @@ export interface UpdateScheduledWorkoutBody {
   scheduledDate?: string;
   /** @nullable */
   notes?: string | null;
+  isPublic?: boolean;
   completed?: boolean;
 }
 

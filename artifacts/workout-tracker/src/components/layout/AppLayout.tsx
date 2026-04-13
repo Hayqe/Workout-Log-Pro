@@ -53,11 +53,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-16 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-16 pb-safe px-3">
         {navigation.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
-            <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+            <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
               <item.icon className="h-5 w-5" />
               <span className="text-[9px] font-medium tracking-tight uppercase">{item.name}</span>
             </Link>
