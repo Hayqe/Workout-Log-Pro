@@ -89,7 +89,13 @@ router.delete("/scheduled-workouts/:id", requireAuth, async (req, res): Promise<
   }
   const userId = req.session.userId!;
   const [deleted] = await db.delete(scheduledWorkoutsTable)
-    .where(and(eq(scheduledWorkoutsTable.id, params.data.id), eq(scheduledWorkoutsTable.userId, userId)))
+    .where(and(
+      eq(scheduledWorkoutsTable.id, params.data.id),
+      or(
+        eq(scheduledWorkoutsTable.userId, userId),
+        eq(scheduledWorkoutsTable.isPublic, true),
+      )
+    ))
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Scheduled workout not found" });
