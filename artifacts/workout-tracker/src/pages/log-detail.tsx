@@ -155,6 +155,9 @@ export default function LogDetailPage() {
                     </div>
                   ))}
                 </div>
+                {ex.note && (
+                  <p className="font-mono text-sm text-muted-foreground bg-muted/30 rounded px-3 py-2 mt-2">{ex.note}</p>
+                )}
               </div>
             ))}
           </CardContent>

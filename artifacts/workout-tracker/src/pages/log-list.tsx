@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { SportTag } from "@/components/ui/sport-tag";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { Plus, ChevronRight, Trash2, Pencil, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer } from "lucide-react";
+import { Plus, ChevronRight, Trash2, Pencil, Clock, Star, History, Bike, Heart, Mountain, Timer, MapPin, Wind, Droplets, Thermometer, Funnel } from "lucide-react";
 import { format } from "date-fns";
 
 function kmhToBft(kmh: number): number {
@@ -232,9 +233,15 @@ export default function LogListPage() {
   const deleteLog = useDeleteWorkoutLog();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
 
   const workoutById = (workouts ?? []).reduce<Record<number, any>>((acc, w) => { acc[w.id] = w; return acc; }, {});
   const sortedLogs = [...(logs || [])].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
+  
+  // Filter logs by workout type
+  const filteredLogs = filterType === "all" 
+    ? sortedLogs 
+    : sortedLogs.filter(log => log.workoutType === filterType);
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -253,28 +260,51 @@ export default function LogListPage() {
           <h1 className="text-3xl font-mono font-black tracking-tighter uppercase text-foreground">Log Book</h1>
           <p className="text-muted-foreground font-mono text-sm mt-1">{(logs?.length || 0)} sessions recorded</p>
         </div>
-        <Link href="/log/new">
-          <Button className="font-mono uppercase tracking-tight gap-2">
-            <Plus className="h-4 w-4" /> Log Session
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-10 sm:w-32 font-mono uppercase tracking-tight text-muted-foreground border bg-background hover:bg-muted/50">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <Funnel className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Filter</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-mono text-sm">All Types</SelectItem>
+              <SelectItem value="bodybuilding" className="font-mono text-sm">Bodybuilding</SelectItem>
+              <SelectItem value="cardio" className="font-mono text-sm">Cardio</SelectItem>
+              <SelectItem value="amrap" className="font-mono text-sm">AMRAP</SelectItem>
+              <SelectItem value="emom" className="font-mono text-sm">EMOM</SelectItem>
+              <SelectItem value="rft" className="font-mono text-sm">RFT</SelectItem>
+            </SelectContent>
+          </Select>
+          <Link href="/log/new">
+            <Button className="font-mono uppercase tracking-tight gap-2">
+              <Plus className="h-4 w-4" /> Log Session
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
         </div>
-      ) : sortedLogs.length === 0 ? (
+      ) : filteredLogs.length === 0 ? (
         <div className="py-16 text-center border border-dashed border-border rounded-md">
           <History className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground font-mono text-sm">No logged sessions yet.</p>
+          <p className="text-muted-foreground font-mono text-sm">No logged sessions{filterType !== "all" ? ` for ${filterType}` : ""} yet.</p>
+          {filterType !== "all" && (
+            <Button variant="ghost" className="mt-2 font-mono text-sm" onClick={() => setFilterType("all")}>
+              Show all sessions
+            </Button>
+          )}
           <Link href="/log/new">
             <Button variant="outline" className="mt-4 font-mono uppercase tracking-tight">Log Your First Workout</Button>
           </Link>
         </div>
       ) : (
         <div className="space-y-2">
-          {sortedLogs.map((log) => {
+          {filteredLogs.map((log) => {
             const isOpen = expandedId === log.id;
             return (
               <Card key={log.id} className={`bg-card border-border transition-all ${isOpen ? "border-primary/40" : "hover:border-primary/20"}`}>
