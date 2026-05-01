@@ -1,11 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+
+// Type for Wake Lock API
+declare global {
+  interface WakeLockSentinel {
+    release: () => Promise<void>;
+    addEventListener: (type: string, listener: EventListener) => void;
+    removeEventListener: (type: string, listener: EventListener) => void;
+  }
+  interface Navigator {
+    wakeLock?: {
+      request: (type: string) => Promise<WakeLockSentinel>;
+    };
+  }
+}
 import {
   useGetWorkoutLog,
   getGetWorkoutLogQueryKey,
   useUpdateWorkoutLog,
   getListWorkoutLogsQueryKey,
+  useListWorkoutLogs,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +31,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Star, Plus, X, MapPin } from "lucide-react";
+import { ArrowLeft, Star, Plus, X, MapPin, PlayCircle, PauseCircle, SkipForward, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
-type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[] };
+type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[]; note?: string };
 
 async function geocodeAndWeather(
   locationName: string,
@@ -84,6 +99,7 @@ export default function LogEditPage() {
     query: { enabled: !!id, queryKey: getGetWorkoutLogQueryKey(id) },
   });
   const updateLog = useUpdateWorkoutLog();
+  const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
 
   /* ─── form state ─── */
   const [workoutName, setWorkoutName] = useState("");
@@ -110,6 +126,56 @@ export default function LogEditPage() {
   const [location, setLocation] = useState("");
   const [originalLocation, setOriginalLocation] = useState("");
   const [originalWeatherJson, setOriginalWeatherJson] = useState<string | null>(null);
+
+  /* Cruise Control state */
+  const [isCruiseActive, setIsCruiseActive] = useState(false);
+  const [cruiseStep, setCruiseStep] = useState<'restInput' | 'setInput' | 'timer' | 'complete'>('restInput');
+  const [cruiseExerciseIdx, setCruiseExerciseIdx] = useState(0);
+  const [cruiseSetIdx, setCruiseSetIdx] = useState(0);
+  const [restSeconds, setRestSeconds] = useState(60);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const [currentReps, setCurrentReps] = useState('');
+  const [currentWeight, setCurrentWeight] = useState('');
+  const weightInputRef = useRef<HTMLInputElement>(null);
+
+  /* Get previous workouts for current exercise */
+  const getPreviousWorkoutsForExercise = (exerciseName: string) => {
+    if (!allLogs || !exerciseName) return [];
+    
+    const previousWorkouts: { date: string; rating: number; sets: { reps: number; weight: number }[] }[] = [];
+    
+    // Filter out the current log
+    const otherLogs = allLogs.filter(l => l.id !== id);
+    
+    otherLogs
+      .filter(log => log.workoutType === "bodybuilding")
+      .forEach(log => {
+        try {
+          const results = JSON.parse(log.results);
+          if (!Array.isArray(results)) return;
+          
+          // Find this exercise in the results
+          const exerciseData = results.find((ex: any) => ex.exerciseName === exerciseName);
+          if (exerciseData && exerciseData.sets) {
+            previousWorkouts.push({
+              date: format(parseISO(log.loggedAt), 'MMM dd'),
+              rating: log.rating || 0,
+              sets: exerciseData.sets
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to parse log results:', e);
+        }
+      });
+    
+    // Sort by date descending and take last 3
+    return previousWorkouts
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
+  };
 
   const [initialised, setInitialised] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,6 +226,50 @@ export default function LogEditPage() {
     }
   }, [log, initialised]);
 
+  /* Timer effect for Cruise Control */
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (timerActive && !isPaused && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(interval!);
+            timerDone();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerActive, isPaused, timeLeft]);
+
+  /* Wake Lock cleanup */
+  useEffect(() => {
+    return () => {
+      if (wakeLock) wakeLock.release();
+    };
+  }, [wakeLock]);
+
+  /* Request wake lock when cruise starts */
+  useEffect(() => {
+    if (isCruiseActive) {
+      requestWakeLock();
+    }
+  }, [isCruiseActive]);
+
+  /* Auto-focus on weight input when setInput step is active */
+  useEffect(() => {
+    if (cruiseStep === 'setInput' && weightInputRef.current) {
+      weightInputRef.current.focus();
+      weightInputRef.current.select();
+    }
+  }, [cruiseStep]);
+
   const buildResults = () => {
     if (workoutType === "bodybuilding") return JSON.stringify(bbResults);
     if (workoutType === "amrap") return JSON.stringify({ rounds: parseInt(amrapRounds) || 0, partialReps: parseInt(amrapPartialReps) || 0, freeText: cfText || undefined });
@@ -172,6 +282,166 @@ export default function LogEditPage() {
       elevationGain: parseInt(cardioElevation) || null,
     });
     return "{}";
+  };
+
+  /* Cruise Control helper functions */
+  const playBeep = () => {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA');
+    audio.play().catch(() => {});
+  };
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        const lock = await navigator.wakeLock.request('screen');
+        setWakeLock(lock);
+        lock.addEventListener('release', () => {
+          setWakeLock(null);
+        });
+      }
+    } catch (err) {
+      console.warn('Wake Lock not available:', err);
+    }
+  };
+
+  const nextSetOrRest = () => {
+    const currentExercise = bbResults[cruiseExerciseIdx];
+    const nextSet = cruiseSetIdx + 1;
+    
+    // Check if this is the last set of the last exercise
+    const isLastSetOfExercise = nextSet >= currentExercise.sets.length;
+    const isLastExercise = cruiseExerciseIdx >= bbResults.length - 1;
+    
+    if (isLastSetOfExercise && isLastExercise) {
+      // No more sets or exercises - workout complete
+      setCruiseStep('complete');
+      return;
+    }
+    
+    // Always go to timer after a set (unless complete)
+    setCruiseStep('timer');
+    setTimeLeft(restSeconds);
+    setTimerActive(true);
+    
+    // Prepare for next set
+    if (!isLastSetOfExercise) {
+      // More sets in current exercise
+      setCruiseSetIdx(nextSet);
+    } else {
+      // Move to next exercise
+      setCruiseExerciseIdx(cruiseExerciseIdx + 1);
+      setCruiseSetIdx(0);
+    }
+  };
+
+  const timerDone = () => {
+    playBeep();
+    setCruiseStep('setInput');
+    setTimerActive(false);
+    // Pre-fill with existing values from the next set
+    if (bbResults.length > 0 && cruiseExerciseIdx < bbResults.length) {
+      const nextSet = bbResults[cruiseExerciseIdx].sets[cruiseSetIdx];
+      if (nextSet) {
+        setCurrentReps(String(nextSet.reps || ''));
+        setCurrentWeight(String(nextSet.weight || ''));
+      } else {
+        setCurrentReps('');
+        setCurrentWeight('');
+      }
+    }
+  };
+
+  const saveSet = () => {
+    const reps = parseInt(currentReps) || 0;
+    const weight = parseFloat(currentWeight) || 0;
+    
+    setBbResults(prev => {
+      const newResults = [...prev];
+      newResults[cruiseExerciseIdx] = {
+        ...newResults[cruiseExerciseIdx],
+        sets: newResults[cruiseExerciseIdx].sets.map((s, i) => 
+          i === cruiseSetIdx ? { reps, weight } : s
+        )
+      };
+      return newResults;
+    });
+    
+    autoSaveLog();
+    setCurrentReps('');
+    setCurrentWeight('');
+  };
+
+  const autoSaveLog = async () => {
+    try {
+      await updateLog.mutateAsync({
+        id,
+        data: {
+          workoutName,
+          workoutType,
+          loggedAt: new Date(loggedAt).toISOString(),
+          durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
+          notes: notes || null,
+          results: buildResults(),
+          rating,
+          location: originalLocation,
+          weatherJson: originalWeatherJson,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: getGetWorkoutLogQueryKey(id) });
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    }
+  };
+
+  const skipSet = () => {
+    const nextSet = cruiseSetIdx + 1;
+    const currentExercise = bbResults[cruiseExerciseIdx];
+    
+    const isLastSetOfExercise = nextSet >= currentExercise.sets.length;
+    const isLastExercise = cruiseExerciseIdx >= bbResults.length - 1;
+    
+    if (isLastSetOfExercise && isLastExercise) {
+      setCruiseStep('complete');
+      return;
+    }
+    
+    // Go directly to next set input
+    setCurrentReps('');
+    setCurrentWeight('');
+    
+    if (!isLastSetOfExercise) {
+      setCruiseSetIdx(nextSet);
+      setCruiseStep('setInput');
+    } else {
+      setCruiseExerciseIdx(cruiseExerciseIdx + 1);
+      setCruiseSetIdx(0);
+      setCruiseStep('setInput');
+    }
+  };
+
+  const skipRest = () => {
+    setTimerActive(false);
+    // Go directly to next set input (skip the timer)
+    // cruiseSetIdx is already the next set index (set by nextSetOrRest)
+    setCurrentReps('');
+    setCurrentWeight('');
+    setCruiseStep('setInput');
+  };
+
+  const startCruise = () => {
+    setCruiseExerciseIdx(0);
+    setCruiseSetIdx(0);
+    setCruiseStep('setInput');
+    // Pre-fill with existing values from the first set
+    if (bbResults.length > 0 && bbResults[0].sets.length > 0) {
+      setCurrentReps(String(bbResults[0].sets[0].reps || ''));
+      setCurrentWeight(String(bbResults[0].sets[0].weight || ''));
+    } else {
+      setCurrentReps('');
+      setCurrentWeight('');
+    }
+    setTimerActive(false);
+    setIsPaused(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -261,8 +531,22 @@ export default function LogEditPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Session info */}
         <Card className="bg-card border-border">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Session Info</CardTitle>
+            {workoutType === "bodybuilding" && (
+              <Button type="button" variant="outline" size="sm" className="font-mono uppercase text-xs gap-1"
+                onClick={() => {
+                  if (bbResults.length === 0) {
+                    toast({ title: 'No exercises', description: 'Add exercises first', variant: 'destructive' });
+                    return;
+                  }
+                  setIsCruiseActive(true);
+                  setCruiseStep('restInput');
+                }}
+              >
+                <PlayCircle className="h-3 w-3" /> Cruise
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -283,15 +567,9 @@ export default function LogEditPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
-                <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase tracking-wider">Duration (min)</Label>
-                <Input type="number" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="60" className="font-mono" />
-              </div>
+            <div className="space-y-2">
+              <Label className="font-mono text-xs uppercase tracking-wider">Date &amp; Time</Label>
+              <Input type="datetime-local" value={loggedAt} onChange={e => setLoggedAt(e.target.value)} className="font-mono text-sm" />
             </div>
           </CardContent>
         </Card>
@@ -357,6 +635,13 @@ export default function LogEditPage() {
                       onClick={() => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: [...r.sets, { reps: 0, weight: 0 }] } : r))}>
                       <Plus className="h-3 w-3" /> Set
                     </Button>
+                    <Textarea
+                      value={ex.note || ""}
+                      onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, note: e.target.value } : r))}
+                      placeholder="Exercise note (e.g., form, difficulty, PR)"
+                      className="font-mono text-sm resize-none"
+                      rows={2}
+                    />
                   </div>
                 </div>
               ))}
@@ -496,6 +781,183 @@ export default function LogEditPage() {
             {isSubmitting ? "Fetching weather…" : updateLog.isPending ? "Saving…" : "Save Changes"}
           </Button>
         </div>
+
+        {/* Cruise Control Modal */}
+        {isCruiseActive && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/98 backdrop-blur-sm p-2">
+            <button
+              type="button"
+              onClick={() => setIsCruiseActive(false)}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors z-10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="w-full max-w-sm px-2 text-center">
+              {/* Rest Input Step */}
+              {cruiseStep === 'restInput' && (
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold text-white">Cruise Control</h2>
+                  <p className="text-lg text-gray-300">Set rest time between sets</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[60, 120, 180, 240].map((secs) => (
+                      <button
+                        key={secs}
+                        type="button"
+                        onClick={() => {
+                          setRestSeconds(secs);
+                          startCruise();
+                        }}
+                        className={`text-2xl font-mono py-4 rounded-lg transition-colors ${
+                          restSeconds === secs 
+                            ? 'bg-white text-black' 
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                        }`}
+                      >
+                        {secs / 60}
+                        <span className="text-xs block">min</span>
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setIsCruiseActive(false)}
+                    className="text-white/70 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+
+              {/* Set Input Step */}
+              {cruiseStep === 'setInput' && bbResults.length > 0 && cruiseExerciseIdx < bbResults.length && (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold text-white truncate">
+                    {bbResults[cruiseExerciseIdx].exerciseName || `Exercise ${cruiseExerciseIdx + 1}`}
+                  </h2>
+                  <p className="text-lg text-gray-300">
+                    Set {cruiseSetIdx + 1} of {bbResults[cruiseExerciseIdx].sets.length}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-base text-gray-300">Reps</Label>
+                      <Input
+                        type="number"
+                        value={currentReps}
+                        onChange={(e) => setCurrentReps(e.target.value)}
+                        placeholder="10"
+                        className="text-center text-2xl font-mono h-16 bg-white text-black border-2 border-gray-300"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-base text-gray-300">Weight (kg)</Label>
+                      <Input
+                        type="number"
+                        value={currentWeight}
+                        onChange={(e) => setCurrentWeight(e.target.value)}
+                        placeholder="60"
+                        className="text-center text-2xl font-mono h-16 bg-white text-black border-2 border-gray-300"
+                        ref={weightInputRef}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        saveSet();
+                        nextSetOrRest();
+                      }}
+                      className="flex-1 text-lg py-4"
+                    >
+                      Save & Rest
+                    </Button>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="lg" className="flex-1 text-base bg-white/10 border-white/30 hover:bg-white/20 text-white" onClick={skipSet}>
+                      <SkipForward className="h-5 w-5" />
+                      <span className="ml-1">Skip</span>
+                    </Button>
+                  </div>
+                  {/* Previous workouts reference */}
+                  {allLogs && (
+                    <div className="pt-4 border-t border-white/10">
+                      <p className="text-xs text-white/60 uppercase tracking-wider mb-2">Previous workouts</p>
+                      <div className="space-y-2">
+                        {getPreviousWorkoutsForExercise(bbResults[cruiseExerciseIdx].exerciseName).map((workout, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-xs font-mono text-white/60">
+                            <span className="w-20 text-left pt-0.5">{workout.date}</span>
+                            <span className="flex-1">
+                              {workout.sets.map((s, si) => (
+                                <span key={si} className="mr-1">
+                                  Set {si + 1}: {s.reps}×{s.weight}kg
+                                </span>
+                              ))}
+                            </span>
+                            <span className="flex gap-0.5 pt-0.5">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star
+                                  key={n}
+                                  className={`h-3 w-3 ${n <= workout.rating ? 'text-yellow-400 fill-yellow-400' : 'text-white/30'}`}
+                                />
+                              ))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Timer Step */}
+              {cruiseStep === 'timer' && (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold text-white">Rest Time</h2>
+                  <p className="text-lg text-gray-300">
+                    Next: {cruiseSetIdx < bbResults[cruiseExerciseIdx]?.sets.length
+                      ? `Set ${cruiseSetIdx + 1} of ${bbResults[cruiseExerciseIdx].sets.length}`
+                      : bbResults[cruiseExerciseIdx + 1]?.exerciseName || 'Next exercise'}
+                  </p>
+                  
+                  {/* Progress bar */}
+                  <div className="w-full bg-white/10 rounded-full h-3">
+                    <div
+                      className="bg-white h-3 rounded-full transition-all duration-1000"
+                      style={{ width: `${((restSeconds - timeLeft) / restSeconds) * 100}%` }}
+                    />
+                  </div>
+                  
+                  <div className="text-7xl font-mono font-bold text-white">
+                    {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button variant="outline" size="lg" className="flex-1 text-base" onClick={() => {
+                      setIsPaused(!isPaused);
+                    }}>
+                      {isPaused ? <Check className="h-5 w-5" /> : <PauseCircle className="h-5 w-5" />}
+                      <span className="ml-1">{isPaused ? 'Resume' : 'Pause'}</span>
+                    </Button>
+                    <Button variant="outline" size="lg" className="flex-1 text-base" onClick={skipRest}>
+                      <SkipForward className="h-5 w-5" />
+                      <span className="ml-1">Skip</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Complete Step */}
+              {cruiseStep === 'complete' && (
+                <div className="space-y-6">
+                  <h2 className="text-4xl font-bold text-green-400">Workout Complete! <Check className="h-10 w-10 inline" /></h2>
+                  <p className="text-xl text-gray-300">All exercises logged successfully</p>
+                  <Button onClick={() => setIsCruiseActive(false)} className="w-full text-lg py-4">
+                    Back to Edit
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

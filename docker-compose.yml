@@ -4,7 +4,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "89:8080"
+      - "8989:8080"
     environment:
       NODE_ENV: production
       PORT: "8080"
@@ -13,9 +13,9 @@ services:
     depends_on:
       stroxx_db:
         condition: service_healthy
-    networks:
-      - srv_proxy
-      - internal
+  #  networks:
+  #    - srv_proxy
+  #    - internal
 
   stroxx_db:
     container_name: stroxx_db
@@ -32,14 +32,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - internal
+ #   networks:
+ #     - internal
 
-networks:
-  srv_proxy:
-    external: true
-  internal:
-    internal: true
+#networks:
+#  srv_proxy:
+#    external: true
+#  internal:
+#    internal: true
 
 volumes:
   stroxx_db_data:

@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart, Funnel } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { KomootImportDialog } from "@/components/komoot-import-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
@@ -212,6 +213,7 @@ export default function WorkoutsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [komootOpen, setKomootOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [filterType, setFilterType] = useState<string>("all");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -228,6 +230,12 @@ export default function WorkoutsPage() {
     }
     return acc;
   }, {});
+
+  // Sort workouts by createdAt (newest first) and filter by type
+  const sortedWorkouts = [...(workouts || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const filteredWorkouts = filterType === "all" 
+    ? sortedWorkouts 
+    : sortedWorkouts.filter(w => w.type === filterType);
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -252,7 +260,23 @@ export default function WorkoutsPage() {
           <p className="text-muted-foreground font-mono text-sm mt-1">All workout templates</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-10 sm:w-32 font-mono uppercase tracking-tight text-muted-foreground border bg-background hover:bg-muted/50">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <Funnel className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Filter</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-mono text-sm">All Types</SelectItem>
+              <SelectItem value="bodybuilding" className="font-mono text-sm">Bodybuilding</SelectItem>
+              <SelectItem value="cardio" className="font-mono text-sm">Cardio</SelectItem>
+              <SelectItem value="amrap" className="font-mono text-sm">AMRAP</SelectItem>
+              <SelectItem value="emom" className="font-mono text-sm">EMOM</SelectItem>
+              <SelectItem value="rft" className="font-mono text-sm">RFT</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="w-10 sm:w-auto font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
             <Download className="h-4 w-4" /><span className="hidden sm:inline">Komoot Import</span>
           </Button>
           <Link href="/workouts/new">
@@ -267,17 +291,22 @@ export default function WorkoutsPage() {
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
         </div>
-      ) : workouts?.length === 0 ? (
+      ) : filteredWorkouts.length === 0 ? (
         <div className="py-16 text-center border border-dashed border-border rounded-md">
           <Dumbbell className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground font-mono text-sm">No workout templates yet.</p>
+          <p className="text-muted-foreground font-mono text-sm">No workout templates{filterType !== "all" ? ` for ${filterType}` : ""} yet.</p>
+          {filterType !== "all" && (
+            <Button variant="ghost" className="mt-2 font-mono text-sm" onClick={() => setFilterType("all")}>
+              Show all workouts
+            </Button>
+          )}
           <Link href="/workouts/new">
             <Button variant="outline" className="mt-4 font-mono uppercase tracking-tight">Create First Workout</Button>
           </Link>
         </div>
       ) : (
         <div className="space-y-2">
-          {workouts?.map((workout) => {
+          {filteredWorkouts.map((workout) => {
             const isOpen = expandedId === workout.id;
             const isOwner = workout.userId === user?.id;
             const isLocked = futureScheduledWorkoutIds.has(workout.id);
