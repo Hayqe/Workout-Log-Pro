@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ChevronDown, Search } from "lucide-react"
+import { ChevronDown, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
 import { Input } from "./input"
@@ -108,8 +108,32 @@ export function WorkoutTemplateSelect({
           </div>
         </div>
 
-        {/* Type filters */}
-        <div className="p-2 border-b flex gap-1 flex-wrap">
+        {/* Search and clear filters */}
+        <div className="p-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 font-mono text-sm h-8"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1 top-1 h-6 w-6"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Type filters with clear button */}
+        <div className="p-2 border-b flex gap-1 flex-wrap items-center">
           {WORKOUT_TYPES.map((type) => {
             const count = typeCounts[type] || 0
             if (count === 0) return null
@@ -126,6 +150,20 @@ export function WorkoutTemplateSelect({
               </Button>
             )
           })}
+          {(selectedType || searchQuery) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedType(null)
+                setSearchQuery("")
+              }}
+              className="font-mono text-xs h-6 px-2 ml-auto"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
 
         {/* Workout list with scrolling */}
