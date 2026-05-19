@@ -95,6 +95,22 @@ export function WorkoutTemplateSelect({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         {/* Search input with clear button */}
+      <PopoverContent className="w-[300px] p-0" align="start">
+        {/* Search input */}
+        <div className="p-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 font-mono text-sm h-8"
+            />
+          </div>
+        </div>
+
+        {/* Search and clear filters */}
         <div className="p-2 border-b">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
