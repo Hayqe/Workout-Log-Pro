@@ -80,7 +80,7 @@ export function WorkoutTemplateSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between font-mono h-9", className)}
+          className={cn("w-full min-w-0 justify-between font-mono h-9", className)}
         >
           {selectedWorkout ? (
             <span className="flex items-center gap-2 truncate">
@@ -93,7 +93,7 @@ export function WorkoutTemplateSelect({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-full min-w-0 p-0" align="start">
         {/* Search input with clear button */}
         <div className="p-2 border-b">
           <div className="relative">
