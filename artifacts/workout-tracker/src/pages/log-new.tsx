@@ -30,7 +30,7 @@ declare global {
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
-type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[]; note?: string };
+type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[] };
 type PrevSet = { reps: number; weight: number };
 type PrevMap = Record<string, { sets: PrevSet[]; date: string }>;
 
@@ -52,18 +52,21 @@ function CountdownToStart({ count }: { count: number }) {
 }
 
 /* ─── Fullscreen timer overlay with Wake Lock ─── */
-function FullscreenTimerOverlay({ onClose, onTap, tapHint, children }: { onClose: () => void; onTap?: () => void; tapHint?: string; children: React.ReactNode }) {
+function FullscreenTimerOverlay({ onClose, onTap, tapHint, children, onFullscreenChange }:
+  { onClose: () => void; onTap?: () => void; tapHint?: string; children: React.ReactNode; onFullscreenChange?: (isFullscreen: boolean) => void }) {
   const lockRef = useRef<any>(null);
 
   useEffect(() => {
     (async () => {
       try { lockRef.current = await (navigator as any).wakeLock?.request("screen"); } catch {}
     })();
+    onFullscreenChange?.(true);
     return () => {
       lockRef.current?.release?.().catch?.(() => {});
       lockRef.current = null;
+      onFullscreenChange?.(false);
     };
-  }, []);
+  }, [onFullscreenChange]);
 
   return (
     <div
@@ -90,8 +93,10 @@ function FullscreenTimerOverlay({ onClose, onTap, tapHint, children }: { onClose
 /* ─── Shared stopwatch + round counter (used by both RFT and AMRAP) ─── */
 function StopwatchTracker({
   onStop,
+  onFullscreenChange,
 }: {
   onStop: (rounds: number, time: string) => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }) {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
@@ -187,6 +192,7 @@ function StopwatchTracker({
         onClose={() => setFullscreen(false)}
         onTap={() => setRounds(r => r + 1)}
         tapHint="Tap to add a round"
+        onFullscreenChange={onFullscreenChange}
       >
         {timerBody(true)}
       </FullscreenTimerOverlay>
@@ -197,7 +203,8 @@ function StopwatchTracker({
 }
 
 /* ─── AMRAP timer: countdown from configurable duration, tap = +1 round ─── */
-function AmrapTimer({ onSave }: { onSave: (rounds: number, partialReps: number) => void }) {
+function AmrapTimer({ onSave, onFullscreenChange }:
+  { onSave: (rounds: number, partialReps: number) => void; onFullscreenChange?: (isFullscreen: boolean) => void }) {
   const [durationMin, setDurationMin] = useState(20);
   const [remaining, setRemaining] = useState(20 * 60);
   const [rounds, setRounds] = useState(0);
@@ -329,6 +336,7 @@ function AmrapTimer({ onSave }: { onSave: (rounds: number, partialReps: number) 
         onClose={() => setFullscreen(false)}
         onTap={() => setRounds(r => r + 1)}
         tapHint="Tap to add a round"
+        onFullscreenChange={onFullscreenChange}
       >
         {timerBody(true)}
       </FullscreenTimerOverlay>
@@ -339,7 +347,7 @@ function AmrapTimer({ onSave }: { onSave: (rounds: number, partialReps: number) 
 }
 
 /* ─── EMOM timer: configurable interval that resets until total time is up ─── */
-function EmomTimer() {
+function EmomTimer({ onFullscreenChange }: { onFullscreenChange?: (isFullscreen: boolean) => void }) {
   const [intervalMin, setIntervalMin] = useState(1);
   const [totalMin, setTotalMin] = useState(20);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -492,7 +500,7 @@ function EmomTimer() {
 
   if (fullscreen) {
     return (
-      <FullscreenTimerOverlay onClose={() => setFullscreen(false)}>
+      <FullscreenTimerOverlay onClose={() => setFullscreen(false)} onFullscreenChange={onFullscreenChange}>
         {timerBody(true)}
       </FullscreenTimerOverlay>
     );
@@ -594,6 +602,7 @@ export default function LogNewPage() {
   const initialTemplate = useMemo(getInitialTemplate, []); // eslint-disable-line
 
   const [selectedTemplateId, setSelectedTemplateId] = useState(workoutIdFromUrl || "");
+  const [logId, setLogId] = useState<number | null>(null);
   const [workoutName, setWorkoutName] = useState(initialTemplate?.name ?? "");
   const [workoutType, setWorkoutType] = useState(initialTemplate?.type ?? "bodybuilding");
   const [loggedAt, setLoggedAt] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
@@ -626,6 +635,7 @@ export default function LogNewPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const [isFullscreenTimer, setIsFullscreenTimer] = useState(false);
   const [currentReps, setCurrentReps] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const weightInputRef = useRef<HTMLInputElement>(null);
@@ -804,12 +814,37 @@ export default function LogNewPage() {
     };
   }, [wakeLock]);
 
-  /* Request wake lock when cruise starts */
+  /* Request wake lock when fullscreen timer is active */
   useEffect(() => {
-    if (isCruiseActive) {
+    if (isFullscreenTimer) {
       requestWakeLock();
     }
-  }, [isCruiseActive]);
+  }, [isFullscreenTimer]);
+
+  /* Visibility API: re-request wake lock when page regains focus */
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isFullscreenTimer) {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isFullscreenTimer]);
+
+  /* Periodic wake lock renewal (every 30 seconds) */
+  useEffect(() => {
+    if (!isFullscreenTimer) return;
+
+    const interval = setInterval(async () => {
+      if (!wakeLock) {
+        await requestWakeLock();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isFullscreenTimer, wakeLock]);
 
   /* Auto-focus on weight input when setInput step is active */
   useEffect(() => {
@@ -818,6 +853,18 @@ export default function LogNewPage() {
       weightInputRef.current.select();
     }
   }, [cruiseStep]);
+
+  /* Debounced auto-save when form fields change (1 second delay) */
+  useEffect(() => {
+    if (fromTemplate) return; // Skip for template-based workouts
+    if (!workoutName?.trim()) return; // Don't save empty workouts
+
+    const timeout = setTimeout(() => {
+      autoSaveLog();
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [bbResults, workoutName, workoutType, loggedAt, notes, rating, location, durationMinutes, amrapRounds, amrapPartialReps, emomScore, rftTime, cardioDistance, cardioDuration, cardioDurationSec, cardioHR, cardioElevation, fromTemplate, workoutName]);
 
   /* Cruise Control helper functions */
   const playBeep = () => {
@@ -830,12 +877,21 @@ export default function LogNewPage() {
       if ('wakeLock' in navigator) {
         const lock = await navigator.wakeLock.request('screen');
         setWakeLock(lock);
-        lock.addEventListener('release', () => {
+        lock.addEventListener('release', async () => {
           setWakeLock(null);
+          // Auto-retry after a short delay if fullscreen timer is still active
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (isFullscreenTimer && document.visibilityState === 'visible') {
+            await requestWakeLock();
+          }
         });
       }
     } catch (err) {
       console.warn('Wake Lock not available:', err);
+      // Retry after delay if fullscreen timer is active
+      if (isFullscreenTimer) {
+        setTimeout(requestWakeLock, 5000);
+      }
     }
   };
 
@@ -886,11 +942,26 @@ export default function LogNewPage() {
     }
   };
 
-  /* Auto-save for ad-hoc workouts when starting cruise */
+  /* Auto-save for ad-hoc workouts when starting cruise or when fields change */
   const autoSaveLog = async () => {
     if (fromTemplate) return; // Template-based workouts are already saved
+    if (!workoutName?.trim()) return; // Don't save empty workouts
     
     try {
+      // For cardio, try to geocode location
+      let confirmedLocation: string | null = null;
+      let weatherJson: string | null = null;
+      
+      if (workoutType === "cardio" && location.trim()) {
+        const result = await geocodeAndWeather(location.trim(), loggedAt);
+        if (result) {
+          confirmedLocation = result.confirmedLocation;
+          weatherJson = result.weatherJson;
+        } else {
+          confirmedLocation = location.trim();
+        }
+      }
+      
       const newLog = await createLog.mutateAsync({
         data: {
           workoutName,
@@ -900,15 +971,18 @@ export default function LogNewPage() {
           notes: notes || null,
           results: buildResults(),
           rating,
-          location: location || null,
-          weatherJson: null,
+          location: confirmedLocation || location || null,
+          weatherJson,
         }
       });
-      toast({ title: 'Auto-saved', description: 'Workout saved before cruise' });
+      // Update state to mark as saved
+      setLogId(newLog.id);
+      setFromTemplate(true);
+      toast({ title: 'Auto-saved', description: 'Workout progress saved' });
       return newLog;
     } catch (err) {
       console.error('Auto-save failed:', err);
-      toast({ title: 'Auto-save failed', description: 'Could not auto-save workout', variant: 'destructive' });
+      // Don't show toast on every failure to avoid spam
       return null;
     }
   };
@@ -1274,15 +1348,6 @@ export default function LogNewPage() {
                     </Button>
                   </div>
                   <PrevWeightHint exerciseName={ex.exerciseName} prevMap={prevMap} />
-                  <div className="space-y-2">
-                    <Textarea
-                      value={ex.note || ""}
-                      onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, note: e.target.value } : r))}
-                      placeholder="Exercise note (e.g., form, difficulty, PR)"
-                      className="font-mono text-sm resize-none"
-                      rows={2}
-                    />
-                  </div>
                   <div className="space-y-2 pt-1">
                     {ex.sets.map((set, si) => (
                       <div key={si} className="flex items-center gap-2 pl-4">
@@ -1319,7 +1384,7 @@ export default function LogNewPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <StopwatchTracker onStop={(rounds, time) => { setRftTime(time); }} />
+              <StopwatchTracker onStop={(rounds, time) => { setRftTime(time); }} onFullscreenChange={setIsFullscreenTimer} />
               <div className="mt-5 border-t border-border pt-4 space-y-2">
                 <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Time (mm:ss)</Label>
                 <Input value={rftTime} onChange={e => setRftTime(e.target.value)} placeholder="11:30" className="font-mono" />
@@ -1335,7 +1400,7 @@ export default function LogNewPage() {
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">AMRAP Timer</CardTitle>
             </CardHeader>
             <CardContent>
-              <AmrapTimer onSave={(r, p) => { setAmrapRounds(r.toString()); setAmrapPartialReps(p.toString()); }} />
+              <AmrapTimer onSave={(r, p) => { setAmrapRounds(r.toString()); setAmrapPartialReps(p.toString()); }} onFullscreenChange={setIsFullscreenTimer} />
               <div className="mt-5 border-t border-border pt-4 grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-mono text-xs uppercase">Rounds</Label>
@@ -1357,7 +1422,7 @@ export default function LogNewPage() {
               <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">EMOM Timer</CardTitle>
             </CardHeader>
             <CardContent>
-              <EmomTimer />
+              <EmomTimer onFullscreenChange={setIsFullscreenTimer} />
               <div className="mt-5 border-t border-border pt-4 space-y-2">
                 <Label className="font-mono text-xs uppercase tracking-wider">Weight / Score</Label>
                 <Input
