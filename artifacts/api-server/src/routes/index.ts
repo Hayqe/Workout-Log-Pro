@@ -8,6 +8,7 @@ import workoutLogsRouter from "./workout_logs";
 import dashboardRouter from "./dashboard";
 import settingsRouter from "./settings";
 import komootRouter from "./komoot";
+import crossfitRouter from "./crossfit";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(workoutLogsRouter);
 router.use(dashboardRouter);
 router.use(settingsRouter);
 router.use(komootRouter);
+router.use(crossfitRouter);
 
 export default router;
