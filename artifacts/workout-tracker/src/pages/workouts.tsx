@@ -15,6 +15,7 @@ import { Link } from "wouter";
 import { Plus, Trash2, ChevronRight, Dumbbell, Timer, Play, Edit, Lock, Download, History, Star, TrendingUp, Mountain, Bike, Heart, Funnel } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { KomootImportDialog } from "@/components/komoot-import-dialog";
+import { CrossfitImportDialog } from "@/components/crossfit-import-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { SportTag } from "@/components/ui/sport-tag";
 import { useAuth } from "@/contexts/auth-context";
@@ -212,6 +213,7 @@ export default function WorkoutsPage() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [komootOpen, setKomootOpen] = useState(false);
+  const [crossfitOpen, setCrossfitOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -278,6 +280,9 @@ export default function WorkoutsPage() {
           </Select>
           <Button variant="outline" className="w-10 sm:w-auto font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setKomootOpen(true)}>
             <Download className="h-4 w-4" /><span className="hidden sm:inline">Komoot Import</span>
+          </Button>
+          <Button variant="outline" className="w-10 sm:w-auto font-mono uppercase tracking-tight gap-2 text-muted-foreground" onClick={() => setCrossfitOpen(true)}>
+            <Dumbbell className="h-4 w-4" /><span className="hidden sm:inline">Crossfit Mainsite</span>
           </Button>
           <Link href="/workouts/new">
             <Button className="font-mono uppercase tracking-tight gap-2">
@@ -399,6 +404,10 @@ export default function WorkoutsPage() {
         open={komootOpen}
         onOpenChange={setKomootOpen}
         onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <CrossfitImportDialog
+        open={crossfitOpen}
+        onOpenChange={setCrossfitOpen}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
