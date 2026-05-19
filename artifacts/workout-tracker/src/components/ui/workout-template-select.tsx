@@ -1,5 +1,6 @@
 "use client"
 
+// Workout template selector with search, type filters, and scrolling
 import { useState, useMemo } from "react"
 import { ChevronDown, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
