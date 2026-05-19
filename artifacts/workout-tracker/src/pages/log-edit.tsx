@@ -36,7 +36,7 @@ import { format, parseISO } from "date-fns";
 
 const WORKOUT_TYPES = ["bodybuilding", "amrap", "emom", "rft", "cardio"];
 
-type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[]; note?: string };
+type ExerciseResult = { exerciseName: string; sets: { reps: number; weight: number }[] };
 
 async function geocodeAndWeather(
   locationName: string,
@@ -137,6 +137,7 @@ export default function LogEditPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const [isFullscreenTimer, setIsFullscreenTimer] = useState(false);
   const [currentReps, setCurrentReps] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const weightInputRef = useRef<HTMLInputElement>(null);
@@ -255,12 +256,37 @@ export default function LogEditPage() {
     };
   }, [wakeLock]);
 
-  /* Request wake lock when cruise starts */
+  /* Request wake lock when fullscreen timer is active */
   useEffect(() => {
-    if (isCruiseActive) {
+    if (isFullscreenTimer) {
       requestWakeLock();
     }
-  }, [isCruiseActive]);
+  }, [isFullscreenTimer]);
+
+  /* Visibility API: re-request wake lock when page regains focus */
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isFullscreenTimer) {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isFullscreenTimer]);
+
+  /* Periodic wake lock renewal (every 30 seconds) */
+  useEffect(() => {
+    if (!isFullscreenTimer) return;
+
+    const interval = setInterval(async () => {
+      if (!wakeLock) {
+        await requestWakeLock();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isFullscreenTimer, wakeLock]);
 
   /* Auto-focus on weight input when setInput step is active */
   useEffect(() => {
@@ -269,6 +295,15 @@ export default function LogEditPage() {
       weightInputRef.current.select();
     }
   }, [cruiseStep]);
+
+  /* Debounced auto-save when form fields change (1 second delay) */
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      autoSaveLog();
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [bbResults, workoutName, workoutType, loggedAt, notes, rating, amrapRounds, amrapPartialReps, emomScore, rftTime, cardioDistance, cardioDuration, cardioDurationSec, cardioHR, cardioElevation, location, cfText]);
 
   const buildResults = () => {
     if (workoutType === "bodybuilding") return JSON.stringify(bbResults);
@@ -295,12 +330,21 @@ export default function LogEditPage() {
       if ('wakeLock' in navigator) {
         const lock = await navigator.wakeLock.request('screen');
         setWakeLock(lock);
-        lock.addEventListener('release', () => {
+        lock.addEventListener('release', async () => {
           setWakeLock(null);
+          // Auto-retry after a short delay if fullscreen timer is still active
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (isFullscreenTimer && document.visibilityState === 'visible') {
+            await requestWakeLock();
+          }
         });
       }
     } catch (err) {
       console.warn('Wake Lock not available:', err);
+      // Retry after delay if fullscreen timer is active
+      if (isFullscreenTimer) {
+        setTimeout(requestWakeLock, 5000);
+      }
     }
   };
 
@@ -388,8 +432,10 @@ export default function LogEditPage() {
         },
       });
       queryClient.invalidateQueries({ queryKey: getGetWorkoutLogQueryKey(id) });
+      toast({ title: 'Auto-saved', description: 'Changes saved' });
     } catch (err) {
       console.error('Auto-save failed:', err);
+      // Don't show toast on every failure to avoid spam
     }
   };
 
@@ -635,13 +681,6 @@ export default function LogEditPage() {
                       onClick={() => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, sets: [...r.sets, { reps: 0, weight: 0 }] } : r))}>
                       <Plus className="h-3 w-3" /> Set
                     </Button>
-                    <Textarea
-                      value={ex.note || ""}
-                      onChange={e => setBbResults(bbResults.map((r, ri) => ri === i ? { ...r, note: e.target.value } : r))}
-                      placeholder="Exercise note (e.g., form, difficulty, PR)"
-                      className="font-mono text-sm resize-none"
-                      rows={2}
-                    />
                   </div>
                 </div>
               ))}
