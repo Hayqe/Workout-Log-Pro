@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link, useSearch } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { RestTimer } from "@/components/ui/rest-timer";
-import { useCreateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
+import { useCreateWorkoutLog, useUpdateWorkoutLog, getListWorkoutLogsQueryKey, useListWorkoutLogs, useListWorkouts, getListWorkoutsQueryKey, useGetWorkout, getGetWorkoutQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -586,6 +586,7 @@ export default function LogNewPage() {
 
   const queryClient = useQueryClient();
   const createLog = useCreateWorkoutLog();
+  const updateLog = useUpdateWorkoutLog();
   const { data: workouts } = useListWorkouts({ query: { queryKey: getListWorkoutsQueryKey() } });
   const { data: allLogs } = useListWorkoutLogs({ query: { queryKey: getListWorkoutLogsQueryKey() } });
 
@@ -856,7 +857,8 @@ export default function LogNewPage() {
 
   /* Debounced auto-save when form fields change (1 second delay) */
   useEffect(() => {
-    if (fromTemplate) return; // Skip for template-based workouts
+    // Skip for template-based workouts (they're already saved to a real log)
+    if (fromTemplate) return;
     if (!workoutName?.trim()) return; // Don't save empty workouts
 
     const timeout = setTimeout(() => {
@@ -962,6 +964,27 @@ export default function LogNewPage() {
         }
       }
       
+      // If we already have a logId, update the existing log
+      if (logId) {
+        await updateLog.mutateAsync({
+          id: logId,
+          data: {
+            workoutName,
+            workoutType,
+            loggedAt: new Date(loggedAt).toISOString(),
+            durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
+            notes: notes || null,
+            results: buildResults(),
+            rating,
+            location: confirmedLocation || location || null,
+            weatherJson,
+          }
+        });
+        toast({ title: 'Auto-saved', description: 'Workout progress saved' });
+        return { id: logId };
+      }
+      
+      // Otherwise, create a new log
       const newLog = await createLog.mutateAsync({
         data: {
           workoutName,
@@ -975,9 +998,9 @@ export default function LogNewPage() {
           weatherJson,
         }
       });
-      // Update state to mark as saved
+      // Update state to mark as saved - store the logId for future updates
       setLogId(newLog.id);
-      setFromTemplate(true);
+      // Don't set fromTemplate to true - we want to continue auto-saving updates to this log
       toast({ title: 'Auto-saved', description: 'Workout progress saved' });
       return newLog;
     } catch (err) {
