@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
+import { WorkoutTemplateSelect } from "@/components/ui/workout-template-select";
 import { ArrowLeft, Star, Plus, X, History, Clock, Play, Square, RotateCcw, Minus, Maximize2, PlayCircle, PauseCircle, SkipForward, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -1293,12 +1294,12 @@ export default function LogNewPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="font-mono text-xs uppercase tracking-wider">Load from template</Label>
-                <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger className="font-mono"><SelectValue placeholder="Select template..." /></SelectTrigger>
-                  <SelectContent>
-                    {workouts?.map(w => <SelectItem key={w.id} value={w.id.toString()} className="font-mono">{w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <WorkoutTemplateSelect
+                  workouts={workouts}
+                  value={selectedTemplateId}
+                  onChange={handleTemplateSelect}
+                  placeholder="Select template..."
+                />
               </div>
               <div className="space-y-2">
                 <Label className="font-mono text-xs uppercase tracking-wider">Workout Name</Label>
