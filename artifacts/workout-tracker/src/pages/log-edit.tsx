@@ -364,6 +364,7 @@ export default function LogEditPage() {
     
     // Always go to timer after a set (unless complete)
     setCruiseStep('timer');
+    setIsFullscreenTimer(true);
     setTimeLeft(restSeconds);
     setTimerActive(true);
     
@@ -381,6 +382,7 @@ export default function LogEditPage() {
   const timerDone = () => {
     playBeep();
     setCruiseStep('setInput');
+    setIsFullscreenTimer(false);
     setTimerActive(false);
     // Pre-fill with existing values from the next set
     if (bbResults.length > 0 && cruiseExerciseIdx < bbResults.length) {
@@ -458,10 +460,12 @@ export default function LogEditPage() {
     if (!isLastSetOfExercise) {
       setCruiseSetIdx(nextSet);
       setCruiseStep('setInput');
+      setIsFullscreenTimer(false);
     } else {
       setCruiseExerciseIdx(cruiseExerciseIdx + 1);
       setCruiseSetIdx(0);
       setCruiseStep('setInput');
+      setIsFullscreenTimer(false);
     }
   };
 
@@ -472,6 +476,7 @@ export default function LogEditPage() {
     setCurrentReps('');
     setCurrentWeight('');
     setCruiseStep('setInput');
+    setIsFullscreenTimer(false);
   };
 
   const startCruise = () => {
@@ -826,7 +831,7 @@ export default function LogEditPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/98 backdrop-blur-sm p-2">
             <button
               type="button"
-              onClick={() => setIsCruiseActive(false)}
+              onClick={() => { setIsFullscreenTimer(false); setIsCruiseActive(false); }}
               className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors z-10"
             >
               <X className="h-5 w-5" />
@@ -860,7 +865,7 @@ export default function LogEditPage() {
                   <Button
                     variant="ghost"
                     size="lg"
-                    onClick={() => setIsCruiseActive(false)}
+                    onClick={() => { setIsFullscreenTimer(false); setIsCruiseActive(false); }}
                     className="text-white/70 hover:text-white"
                   >
                     Cancel
@@ -989,7 +994,7 @@ export default function LogEditPage() {
                 <div className="space-y-6">
                   <h2 className="text-4xl font-bold text-green-400">Workout Complete! <Check className="h-10 w-10 inline" /></h2>
                   <p className="text-xl text-gray-300">All exercises logged successfully</p>
-                  <Button onClick={() => setIsCruiseActive(false)} className="w-full text-lg py-4">
+                  <Button onClick={() => { setIsFullscreenTimer(false); setIsCruiseActive(false); }} className="w-full text-lg py-4">
                     Back to Edit
                   </Button>
                 </div>
