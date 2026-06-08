@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkoutBadge } from "@/components/ui/workout-badge";
+import { WorkoutTemplateSelect } from "@/components/ui/workout-template-select";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Globe, Lock, Check, CalendarDays, List } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isToday, isBefore, startOfDay } from "date-fns";
 import { useLocation } from "wouter";
@@ -384,14 +385,12 @@ export default function CalendarPage() {
               <div className="space-y-3 mt-3">
               <div className="space-y-2">
                 <Label className="font-mono text-xs uppercase">From template</Label>
-                <Select value={newWorkoutId} onValueChange={handleWorkoutSelect}>
-                  <SelectTrigger className="font-mono"><SelectValue placeholder="Select template..." /></SelectTrigger>
-                  <SelectContent>
-                    {workouts?.map(w => (
-                      <SelectItem key={w.id} value={w.id.toString()} className="font-mono">{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <WorkoutTemplateSelect
+                  workouts={workouts}
+                  value={newWorkoutId}
+                  onChange={handleWorkoutSelect}
+                  placeholder="Select template..."
+                />
               </div>
               <div className="space-y-2">
                 <Label className="font-mono text-xs uppercase">Or custom name</Label>
